@@ -14,9 +14,9 @@
 
 ---
 
-**Author:** Miguel Guirao
-**Event:** DEF CON 34
-**Version:** 1.0
+- **Author:** Miguel Guirao
+- **Event:** DEF CON 34
+- **Version:** 1.0
 
 *This reference guide is intended exclusively for educational and authorized security
 testing purposes. All techniques described herein must only be applied in lab
