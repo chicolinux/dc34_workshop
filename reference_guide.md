@@ -72,7 +72,6 @@ Pandoc with the `mermaid-filter`.
 
 ---
 
-\newpage
 
 ## Lab Environment Reference
 
@@ -95,7 +94,7 @@ they appear in every module.
 │                      │                              │
 │              ┌───────┴────────┐                     │
 │              │  Gateway       │                     │
-│              │  192.168.100.254│                    │
+│              │ 192.168.100.254│                     │
 │              └────────────────┘                     │
 └─────────────────────────────────────────────────────┘
 ```
@@ -111,7 +110,6 @@ they appear in every module.
 
 ---
 
-\newpage
 
 ## Chapter 0 — Setup and Prerequisites
 
@@ -368,7 +366,6 @@ The lab network `192.168.100.0/24` has hosts `192.168.100.1` through `192.168.10
 
 ---
 
-\newpage
 
 ## Chapter 1 — Scapy Fundamentals
 
