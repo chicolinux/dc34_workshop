@@ -30,7 +30,7 @@ Opens at `http://localhost:8501`
 
 ### Controls (sidebar)
 
-- **Target Network** — CIDR range, e.g. `10.0.0.0/24`
+- **Target Network** — CIDR range, e.g. `192.168.56.0/24`
 - **Discovery Method** — `arp` (default) / `icmp` / `tcp` / `all`
 - **Port Range** — comma list or range: `21-23,80,443,9000`
 - **OS Fingerprinting** — toggle on/off (adds ~5s per host)
@@ -61,7 +61,7 @@ To make it accessible to all VMs on the lab bridge:
 
 ```bash
 streamlit run dashboard/capstone_scoreboard.py --server.address 0.0.0.0
-# Attendees access: http://10.0.0.1:8501
+# Attendees access: http://192.168.56.1:8501
 ```
 
 ### What you see

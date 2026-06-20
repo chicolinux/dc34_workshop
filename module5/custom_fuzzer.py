@@ -12,7 +12,7 @@ Start the server first:
   python3 module5/target_server.py --port 9000
 
 Then run the fuzzer:
-  sudo python3 module5/custom_fuzzer.py --target 10.0.0.2 --port 9000
+  sudo python3 module5/custom_fuzzer.py --target 192.168.56.2 --port 9000
 
 For state-aware fuzzing exercise (5-X), see the extra_stateful_fuzzer() function.
 """
@@ -29,6 +29,7 @@ from pathlib import Path
 from scapy.all import fuzz, Raw, wrpcap, IP, TCP, conf
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 # Import our custom protocol layer
 import sys
@@ -267,7 +268,7 @@ def stateful_fuzzer_skeleton(target: str, port: int):
 
 def main():
     parser = argparse.ArgumentParser(description="DC34Proto fuzzer")
-    parser.add_argument("--target", default="10.0.0.2")
+    parser.add_argument("--target", default="192.168.56.2")
     parser.add_argument("--port",   type=int, default=9000)
     parser.add_argument("--iters",  type=int, default=1000, help="Max iterations (default: 1000)")
     parser.add_argument("--seed",   type=int, default=None, help="Random seed for reproducibility")

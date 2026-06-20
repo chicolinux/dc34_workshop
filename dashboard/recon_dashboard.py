@@ -68,6 +68,7 @@ def run_scan(network: str, method: str, ports_spec: str, fingerprint: bool, ifac
     """
     from scapy.all import conf
     conf.verb = 0
+    conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
     with _scan_lock:
         _scan_state.update({
@@ -113,7 +114,7 @@ def run_scan(network: str, method: str, ports_spec: str, fingerprint: bool, ifac
             if not result and method in ("tcp", "all"):
                 try:
                     reply = sr1(
-                        IP(dst=ip) / TCP(dport=80, sport=RandShort(), flags="S"),
+                        IP(dst=ip) / TCP(dport=80, sport=int(RandShort()), flags="S"),
                         timeout=0.5, verbose=False,
                     )
                     if reply and reply.haslayer("TCP"):
@@ -244,7 +245,7 @@ def network_graph(hosts: dict, ports: dict) -> go.Figure:
     Node color = OS guess family. Node size = number of open ports.
     """
     G = nx.Graph()
-    attacker_ip = "attacker\n(10.0.0.1)"
+    attacker_ip = "attacker\n(192.168.56.1)"
     G.add_node(attacker_ip, kind="attacker")
 
     for ip, info in hosts.items():
@@ -405,7 +406,7 @@ def main():
         st.caption("DC34 — Offensive Packet Wizardry")
         st.divider()
 
-        network   = st.text_input("Target Network (CIDR)", value="10.0.0.0/24")
+        network   = st.text_input("Target Network (CIDR)", value="192.168.56.0/24")
         method    = st.selectbox("Discovery Method", ["arp", "icmp", "tcp", "all"], index=0)
         ports_spec = st.text_input("Port Range", value="21-23,25,53,80,443,8080,9000")
         do_fp     = st.checkbox("OS Fingerprinting", value=True)

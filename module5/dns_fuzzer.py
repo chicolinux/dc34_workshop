@@ -12,8 +12,8 @@ Start DNS server on target:
   sudo dnsmasq --no-daemon --no-resolv --listen-address=0.0.0.0 --port=53
 
 Usage:
-  sudo python3 module5/dns_fuzzer.py --target 10.0.0.2
-  sudo python3 module5/dns_fuzzer.py --target 10.0.0.2 --iters 500 --seed 42
+  sudo python3 module5/dns_fuzzer.py --target 192.168.56.2
+  sudo python3 module5/dns_fuzzer.py --target 192.168.56.2 --iters 500 --seed 42
 """
 
 import argparse
@@ -30,6 +30,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 CRASH_DIR = Path("crashes")
 CRASH_DIR.mkdir(exist_ok=True)
@@ -185,7 +186,7 @@ def fuzz_dns(target: str, iters: int = 500, seed: int | None = None, delay: floa
 
 def main():
     parser = argparse.ArgumentParser(description="DNS server fuzzer")
-    parser.add_argument("--target", default="10.0.0.2")
+    parser.add_argument("--target", default="192.168.56.2")
     parser.add_argument("--iters",  type=int,   default=500)
     parser.add_argument("--seed",   type=int,   default=None)
     parser.add_argument("--delay",  type=float, default=0.02, help="Delay between packets (s)")

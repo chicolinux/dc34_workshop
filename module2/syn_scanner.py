@@ -7,9 +7,9 @@ Because the OS never sees a completed connection, the target's application layer
 never receives a connection request — stealthier than a full-connect scan.
 
 Usage:
-  sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 1-1024
-  sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 22,80,443,8080
-  sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 1-65535 --timeout 0.5
+  sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 1-1024
+  sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 22,80,443,8080
+  sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 1-65535 --timeout 0.5
 """
 
 import argparse
@@ -21,6 +21,7 @@ from datetime import datetime
 from scapy.all import IP, TCP, sr, conf, RandShort
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 
 def parse_ports(port_spec: str) -> list[int]:
@@ -54,7 +55,7 @@ def syn_scan(
 
     # Build all SYN probes at once
     probes = [
-        IP(dst=target) / TCP(dport=p, sport=RandShort(), flags="S", seq=1000)
+        IP(dst=target) / TCP(dport=p, sport=int(RandShort()), flags="S", seq=1000)
         for p in ports
     ]
 

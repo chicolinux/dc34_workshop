@@ -15,10 +15,11 @@ from scapy.all import (
     RandShort,
 )
 
-TARGET = "10.0.0.2"
-IFACE  = conf.iface          # change if needed, e.g. "eth0"
+TARGET = "192.168.56.2"
 
 conf.verb = 0                # suppress per-packet noise in production scripts
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
+IFACE  = conf.iface          # the lab interface (e.g. eth1); override if needed
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -170,7 +171,7 @@ def section_scripting():
 
     # Safe sr1 wrapper — returns None instead of raising on timeout
     def probe(target, port, timeout=1):
-        pkt = IP(dst=target) / TCP(dport=port, flags="S", sport=RandShort())
+        pkt = IP(dst=target) / TCP(dport=port, flags="S", sport=int(RandShort()))
         return sr1(pkt, timeout=timeout, verbose=False)
 
     reply = probe(TARGET, 22)

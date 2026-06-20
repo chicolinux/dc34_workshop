@@ -23,12 +23,12 @@ class ArpMitm:
     Context manager for ARP MitM attack.
 
     Usage:
-        with ArpMitm("10.0.0.2", "10.0.0.254", callback=my_fn) as mitm:
+        with ArpMitm("192.168.56.2", "192.168.56.254", callback=my_fn) as mitm:
             time.sleep(30)   # mitm is active here
         # ARP caches automatically restored on exit
 
     Or manually:
-        mitm = ArpMitm("10.0.0.2", "10.0.0.254")
+        mitm = ArpMitm("192.168.56.2", "192.168.56.254")
         mitm.start()
         # ... do stuff ...
         mitm.stop()

@@ -13,9 +13,9 @@ Red team relevance:
   - Both are dropped by most internet routers but often pass within enterprise LAN
 
 Usage:
-  sudo python3 module4/ip_options.py --demo lsrr --target 10.0.0.2 --via 10.0.0.1
-  sudo python3 module4/ip_options.py --demo rr   --target 10.0.0.2
-  sudo python3 module4/ip_options.py --demo frag --target 10.0.0.2
+  sudo python3 module4/ip_options.py --demo lsrr --target 192.168.56.2 --via 192.168.56.1
+  sudo python3 module4/ip_options.py --demo rr   --target 192.168.56.2
+  sudo python3 module4/ip_options.py --demo frag --target 192.168.56.2
 """
 
 import argparse
@@ -27,6 +27,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 
 # ── Loose Source and Record Route (LSRR) ──────────────────────────────────────
@@ -151,8 +152,8 @@ def demo_fragmentation(target: str):
 def main():
     parser = argparse.ArgumentParser(description="IP options and fragmentation demo")
     parser.add_argument("--demo", choices=["lsrr", "rr", "ts", "frag", "all"], default="all")
-    parser.add_argument("--target", default="10.0.0.2")
-    parser.add_argument("--via",    default="10.0.0.1", help="Waypoint for LSRR demo")
+    parser.add_argument("--target", default="192.168.56.2")
+    parser.add_argument("--via",    default="192.168.56.1", help="Waypoint for LSRR demo")
     args = parser.parse_args()
 
     demos = {

@@ -13,7 +13,7 @@ Usage (run on the target VM as root):
   sudo python3 module6/icmp_agent.py --iface eth0
 
   Then from the attacker:
-  sudo python3 module6/icmp_tunnel.py --target 10.0.0.2
+  sudo python3 module6/icmp_tunnel.py --target 192.168.56.2
 """
 
 import argparse
@@ -29,6 +29,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 CHUNK_SIZE  = 48
 MAX_OUTPUT  = 8192    # truncate command output to this many bytes

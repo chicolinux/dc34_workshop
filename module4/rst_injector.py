@@ -14,8 +14,8 @@ Requires: root privileges, visibility to the target traffic
 (attacker must be on path, or use with ARP MitM from module3).
 
 Usage:
-  sudo python3 module4/rst_injector.py --target 10.0.0.2 --port 22
-  sudo python3 module4/rst_injector.py --target 10.0.0.2 --port 23 --continuous
+  sudo python3 module4/rst_injector.py --target 192.168.56.2 --port 22
+  sudo python3 module4/rst_injector.py --target 192.168.56.2 --port 23 --continuous
 """
 
 import argparse
@@ -29,6 +29,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 killed_sessions: set = set()
 stop_event = threading.Event()

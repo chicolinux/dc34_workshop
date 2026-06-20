@@ -28,6 +28,8 @@ All exercises run inside an isolated two-VM lab (Kali attacker + Ubuntu target).
 - Basic TCP/IP: you can explain what a SYN-ACK is and draw a TCP handshake
 - Linux CLI: comfortable with `ip`, `ss`, `tcpdump`, `iptables`
 - Scapy is **not** a prerequisite — it is what you are here to learn
+- **Bring your lab ready:** the two VMs are **not** provided — build them yourself and install all
+  dependencies *before* arriving (do not rely on conference Wi-Fi). See `setup/README.md`.
 
 ---
 
@@ -35,13 +37,17 @@ All exercises run inside an isolated two-VM lab (Kali attacker + Ubuntu target).
 
 | Host | IP | Role |
 |------|----|------|
-| attacker | 10.0.0.1 | Kali Linux 2024, your machine |
-| target   | 10.0.0.2 | Ubuntu 22.04, your victim |
-| gateway  | 10.0.0.254 | Virtual router (simulated) |
+| attacker | 192.168.56.1 | Kali Linux (rolling), your machine |
+| target   | 192.168.56.2 | Ubuntu 24.04, your victim |
+| gateway  | 192.168.56.254 | Virtual router (simulated) |
 
-Network: isolated bridge `virbr1`, no internet access required during exercises.
+Network: isolated VirtualBox internal network `192.168.56.0/24`, no internet access required during
+exercises.
 
-**VM download:** See `setup/README.md` for OVA download link and import instructions.
+**No VMs are provided** — but you don't build them by hand either. A **Vagrantfile** in the repo root
+creates and fully provisions both VMs (Kali attacker + Ubuntu target), the isolated network, and all
+software with a single `vagrant up`. Do this **before** the workshop. See
+[`setup/README.md`](setup/README.md) for prerequisites and details.
 
 ---
 
@@ -82,18 +88,24 @@ dc34_workshop/
 ## Quick Start
 
 ```bash
-# 1. Clone the repo on your attacker VM
+# 1. Clone the workshop repo on your host (needs VirtualBox + Vagrant installed)
 git clone <repo_url> ~/workshop && cd ~/workshop
 
-# 2. Install dependencies
-pip3 install -r requirements.txt
+# 2. Build and provision BOTH VMs automatically (first run downloads the boxes)
+vagrant up
 
-# 3. Verify your environment
-sudo python3 setup/verify_env.py
+# 3. Log into the Kali attacker VM (the repo is mounted at /vagrant)
+vagrant ssh attacker
 
-# 4. Launch Scapy interactive shell
+# 4. Verify your environment
+sudo python3 /vagrant/setup/verify_env.py
+
+# 5. Launch Scapy interactive shell
 sudo scapy
 ```
+
+> Prefer to build the VMs by hand? See the "Manual Setup" fallback in
+> [`setup/README.md`](setup/README.md).
 
 ---
 

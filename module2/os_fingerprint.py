@@ -11,14 +11,15 @@ This is a simplified p0f-style fingerprinter. Not comprehensive, but
 illustrates exactly how tools like Nmap -O and p0f work under the hood.
 
 Usage:
-  sudo python3 module2/os_fingerprint.py 10.0.0.2
-  sudo python3 module2/os_fingerprint.py 10.0.0.2 --port 443
+  sudo python3 module2/os_fingerprint.py 192.168.56.2
+  sudo python3 module2/os_fingerprint.py 192.168.56.2 --port 443
 """
 
 import argparse
 from scapy.all import IP, TCP, ICMP, sr1, conf, RandShort
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 
 # ── Signature database ─────────────────────────────────────────────────────────
@@ -109,7 +110,7 @@ def tcp_syn_probe(target: str, port: int, timeout: float = 2.0) -> dict | None:
     """Send SYN and extract fingerprint data from SYN-ACK."""
     pkt = IP(dst=target) / TCP(
         dport=port,
-        sport=RandShort(),
+        sport=int(RandShort()),
         flags="S",
         options=[
             ("MSS", 1460),

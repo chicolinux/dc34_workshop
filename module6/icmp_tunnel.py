@@ -18,7 +18,7 @@ Protocol:
     0xFF = error
 
 Usage:
-  sudo python3 module6/icmp_tunnel.py --target 10.0.0.2
+  sudo python3 module6/icmp_tunnel.py --target 192.168.56.2
 
   Then type commands at the prompt:
     > whoami
@@ -38,6 +38,7 @@ import time
 from scapy.all import IP, ICMP, Raw, sr1, conf
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 CHUNK_SIZE   = 48     # bytes of payload per ICMP packet (keep under 56 to look like ping)
 SESSION_ID   = random.randint(1, 0xFFFF)

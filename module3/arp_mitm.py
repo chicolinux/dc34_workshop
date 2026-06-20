@@ -13,7 +13,7 @@ REQUIRES:
   - Both victim and gateway on the same L2 segment as attacker
 
 Usage:
-  sudo python3 module3/arp_mitm.py --victim 10.0.0.2 --gateway 10.0.0.254 --iface eth0
+  sudo python3 module3/arp_mitm.py --victim 192.168.56.2 --gateway 192.168.56.254 --iface eth0
 """
 
 import argparse
@@ -29,6 +29,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 stop_event = threading.Event()
 
 
@@ -129,8 +130,8 @@ def cleanup(
 
 def main():
     parser = argparse.ArgumentParser(description="ARP MitM with traffic interception")
-    parser.add_argument("--victim",  required=True, help="Victim IP (e.g. 10.0.0.2)")
-    parser.add_argument("--gateway", required=True, help="Gateway IP (e.g. 10.0.0.254)")
+    parser.add_argument("--victim",  required=True, help="Victim IP (e.g. 192.168.56.2)")
+    parser.add_argument("--gateway", required=True, help="Gateway IP (e.g. 192.168.56.254)")
     parser.add_argument("--iface",   default=conf.iface, help="Network interface")
     parser.add_argument("--interval", type=float, default=2.0, help="Poison interval in seconds")
     args = parser.parse_args()

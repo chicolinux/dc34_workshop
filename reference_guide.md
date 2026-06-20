@@ -17,6 +17,7 @@
 - **Author:** Miguel Guirao
 - **Event:** DEF CON 34
 - **Version:** 1.0
+- **GitHUb:** https://github.com/chicolinux/dc34_workshop
 
 *This reference guide is intended exclusively for educational and authorized security
 testing purposes. All techniques described herein must only be applied in lab
@@ -81,29 +82,29 @@ they appear in every module.
 ```
 ┌─────────────────────────────────────────────────────┐
 │              Isolated Lab Network                   │
-│              192.168.100.0/24                       │
+│              192.168.56.0/24                             │
 │                                                     │
 │  ┌──────────────────┐    ┌──────────────────────┐   │
 │  │  Attacker VM     │    │  Target VM           │   │
-│  │  Kali Linux      │    │  Ubuntu 22.04        │   │
-│  │  192.168.100.1   │    │  192.168.100.2       │   │
-│  │  eth0            │    │  eth0                │   │
+│  │  Kali Linux      │    │  Ubuntu 24.04        │   │
+│  │  192.168.56.1        │    │  192.168.56.2            │   │
+│  │  eth1 (lab)      │    │  eth1 (lab)          │   │
 │  └────────┬─────────┘    └──────────┬───────────┘   │
 │           │                         │               │
 │           └──────────┬──────────────┘               │
 │                      │                              │
 │              ┌───────┴────────┐                     │
 │              │  Gateway       │                     │
-│              │ 192.168.100.254│                     │
+│              │  192.168.56.254    │                     │
 │              └────────────────┘                     │
 └─────────────────────────────────────────────────────┘
 ```
 
 | Host | IP Address | Role |
 |------|-----------|------|
-| Attacker | `192.168.100.1` | Your working machine (Kali Linux) |
-| Target | `192.168.100.2` | Victim host (Ubuntu, running vulnerable services) |
-| Gateway | `192.168.100.254` | Default route (simulated router) |
+| Attacker | `192.168.56.1` | Your working machine (Kali Linux) |
+| Target | `192.168.56.2` | Victim host (Ubuntu, running vulnerable services) |
+| Gateway | `192.168.56.254` | Default route (simulated router) |
 
 > **Important**: This network is completely isolated. No traffic leaves the VM bridge.
 > You cannot damage any real systems from within this environment.
@@ -179,7 +180,7 @@ BPF (Berkeley Packet Filter) syntax is used both by `tcpdump` and Scapy's `sniff
 |---|---|
 | `tcp` | Any TCP packet |
 | `udp port 53` | UDP packets on port 53 (DNS) |
-| `host 192.168.100.2` | Any packet to or from that IP |
+| `host 192.168.56.2` | Any packet to or from that IP |
 | `tcp and dst port 80` | TCP packets destined for port 80 |
 | `icmp` | Any ICMP packet |
 | `arp` | Any ARP packet |
@@ -251,7 +252,7 @@ import socket
 
 # TCP client (normal)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(("192.168.100.2", 9000))
+s.connect(("192.168.56.2", 9000))
 s.sendall(b"hello")
 data = s.recv(1024)
 s.close()
@@ -329,14 +330,14 @@ Ether() / IP() / TCP() / b"GET / HTTP/1.0\r\n\r\n"
 
 | Concept | Example | Notes |
 |---------|---------|-------|
-| IPv4 Address | `192.168.100.1` | 32-bit, dotted decimal |
+| IPv4 Address | `192.168.56.1` | 32-bit, dotted decimal |
 | Subnet Mask | `255.255.255.0` or `/24` | defines network portion |
-| Network Address | `192.168.100.0/24` | 254 usable hosts |
-| Broadcast | `192.168.100.255` | all hosts on segment |
+| Network Address | `192.168.56.0/24` | 254 usable hosts |
+| Broadcast | `192.168.56.255` | all hosts on segment |
 | Loopback | `127.0.0.1` | always yourself |
 
 **CIDR notation**: `/24` = 256 addresses (254 usable). `/16` = 65536 addresses.
-The lab network `192.168.100.0/24` has hosts `192.168.100.1` through `192.168.100.254`.
+The lab network `192.168.56.0/24` has hosts `192.168.56.1` through `192.168.56.254`.
 
 ---
 
@@ -533,7 +534,7 @@ pkt = Ether() / IP() / TCP()
 
 # Override any field
 pkt = Ether(dst="ff:ff:ff:ff:ff:ff") / \
-      IP(dst="192.168.100.2", ttl=64) / \
+      IP(dst="192.168.56.2", ttl=64) / \
       TCP(dport=22, flags="S", seq=1000)
 ```
 
@@ -563,16 +564,16 @@ Scapy has four core send/receive functions:
 
 ```python
 # Fire and forget
-send(IP(dst="192.168.100.2") / ICMP())
+send(IP(dst="192.168.56.2") / ICMP())
 
 # Send and receive one reply
-reply = sr1(IP(dst="192.168.100.2") / ICMP(), timeout=2)
+reply = sr1(IP(dst="192.168.56.2") / ICMP(), timeout=2)
 if reply:
     reply.show()
 
 # Send many, collect (answered, unanswered)
 answered, unanswered = sr(
-    [IP(dst="192.168.100.2") / TCP(dport=p, flags="S") for p in range(1, 1025)],
+    [IP(dst="192.168.56.2") / TCP(dport=p, flags="S") for p in range(1, 1025)],
     timeout=2,
     verbose=0,
 )
@@ -686,10 +687,10 @@ Every host *must* respond to ARP requests for its own IP address.
 ```
 Attacker                            Target
     │                                  │
-    │── ARP Who has 192.168.100.2? ──►│
+    │── ARP Who has 192.168.56.2? ──►│
     │   (broadcast ff:ff:ff:ff:ff:ff)  │
     │                                  │
-    │◄── ARP Reply: 192.168.100.2 ────│
+    │◄── ARP Reply: 192.168.56.2 ────│
     │    is at aa:bb:cc:dd:ee:ff        │
 ```
 
@@ -810,7 +811,7 @@ predictably:
 
 ```mermaid
 flowchart TD
-    A[Start Recon] --> B[ARP Sweep\n192.168.100.0/24]
+    A[Start Recon] --> B[ARP Sweep\n192.168.56.0/24]
     B --> C{Host responds?}
     C -- Yes --> D[Add to live host list]
     C -- No --> E[Skip]
@@ -862,24 +863,24 @@ flowchart TD
 ### 3.1 The Address Resolution Protocol (ARP)
 
 ARP solves a fundamental problem: IP addresses identify hosts logically, but Ethernet frames
-need a physical MAC address. When host A wants to send a packet to `192.168.100.2`, it must
+need a physical MAC address. When host A wants to send a packet to `192.168.56.2`, it must
 first find out the MAC address that corresponds to that IP.
 
 #### Normal ARP Operation
 
 ```
-Host A (192.168.100.1)          Host B (192.168.100.2)
+Host A (192.168.56.1)          Host B (192.168.56.2)
           │                               │
           │── ARP Request (broadcast) ──►│
-          │   "Who has 192.168.100.2?    │
-          │    Tell 192.168.100.1"        │
+          │   "Who has 192.168.56.2?    │
+          │    Tell 192.168.56.1"        │
           │   Dst MAC: ff:ff:ff:ff:ff:ff │
           │                               │
           │◄── ARP Reply (unicast) ───────│
-          │    "192.168.100.2 is at       │
+          │    "192.168.56.2 is at       │
           │     aa:bb:cc:dd:ee:ff"        │
           │                               │
- [A saves: 192.168.100.2 → aa:bb:cc:dd:ee:ff in ARP cache]
+ [A saves: 192.168.56.2 → aa:bb:cc:dd:ee:ff in ARP cache]
 ```
 
 #### The ARP Packet Format
@@ -929,13 +930,13 @@ believe the attacker's MAC corresponds to the other's IP.
 
 ```mermaid
 sequenceDiagram
-    participant V as Victim (192.168.100.2)
-    participant A as Attacker (192.168.100.1)
-    participant G as Gateway (192.168.100.254)
+    participant V as Victim (192.168.56.2)
+    participant A as Attacker (192.168.56.1)
+    participant G as Gateway (192.168.56.254)
 
     Note over A: Send forged ARP Replies to both sides
-    A->>V: ARP Reply: "192.168.100.254 is at [ATTACKER MAC]"
-    A->>G: ARP Reply: "192.168.100.2 is at [ATTACKER MAC]"
+    A->>V: ARP Reply: "192.168.56.254 is at [ATTACKER MAC]"
+    A->>G: ARP Reply: "192.168.56.2 is at [ATTACKER MAC]"
 
     Note over V,G: ARP caches are now poisoned
     V->>A: Traffic intended for Gateway
@@ -964,10 +965,10 @@ a host that a better route exists for a specific destination.
 #### How ICMP Redirect Works Legitimately
 
 ```
-Host A sends packet to 10.0.0.1 via default gateway 192.168.100.254.
-The gateway knows a shorter path exists via 192.168.100.50.
+Host A sends packet to 10.0.0.1 via default gateway 192.168.56.254.
+The gateway knows a shorter path exists via 192.168.56.50.
 The gateway sends ICMP Redirect to Host A:
-  "For destination 10.0.0.1, use gateway 192.168.100.50 instead."
+  "For destination 10.0.0.1, use gateway 192.168.56.50 instead."
 Host A updates its routing cache.
 ```
 
@@ -977,11 +978,11 @@ An attacker on the same segment can forge an ICMP Redirect message, spoofing the
 of the gateway, to silently reroute a victim's traffic to the attacker.
 
 ```
-Attacker forges: IP(src=192.168.100.254) / ICMP(type=5, code=1, gw=192.168.100.1)
+Attacker forges: IP(src=192.168.56.254) / ICMP(type=5, code=1, gw=192.168.56.1)
 Embeds: the original IP/UDP header to make it look legitimate
 
 Victim updates routing cache:
-  "Traffic to [target] should go via 192.168.100.1 (attacker)"
+  "Traffic to [target] should go via 192.168.56.1 (attacker)"
 ```
 
 This is stealthier than ARP poisoning because it only affects traffic to specific
@@ -1697,7 +1698,7 @@ import anthropic
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from environment
 
 response = client.messages.create(
-    model="claude-opus-4-6",
+    model="claude-opus-4-8",
     max_tokens=1024,
     system="You are a network security expert.",
     messages=[
@@ -1712,7 +1713,7 @@ see the first words within milliseconds rather than waiting for the full respons
 
 ```python
 with client.messages.stream(
-    model="claude-opus-4-6",
+    model="claude-opus-4-8",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Explain ARP poisoning."}],
 ) as stream:
@@ -1878,12 +1879,12 @@ ip link set eth0 promisc on     # enable promiscuous mode (required for some sni
 
 # Routing
 ip route show                   # show routing table
-ip route add 10.0.0.0/8 via 192.168.100.254  # add static route
+ip route add 10.0.0.0/8 via 192.168.56.254  # add static route
 ip route del 10.0.0.0/8         # remove route
 
 # ARP cache
 ip neigh show                   # view ARP cache
-ip neigh del 192.168.100.2 dev eth0  # delete ARP entry
+ip neigh del 192.168.56.2 dev eth0  # delete ARP entry
 ip neigh flush dev eth0         # flush entire cache
 
 # IP forwarding (required for MitM)
@@ -1927,7 +1928,7 @@ hexdump -C binary_file          # hex + ASCII dump
 # Python
 python3 script.py               # run script
 python3 -c "import scapy; print(scapy.VERSION)"  # one-liner
-pip3 install scapy              # install package
+git clone https://github.com/secdev/scapy.git && cd scapy && sudo pip3 install . --break-system-packages --ignore-installed  # latest from source
 pip3 list | grep scapy          # check installed version
 ```
 
@@ -1944,9 +1945,9 @@ pip3 list | grep scapy          # check installed version
 Ether(dst="ff:ff:ff:ff:ff:ff", src="aa:bb:cc:dd:ee:ff", type=0x0800)
 
 # Layer 3
-IP(src="192.168.100.1", dst="192.168.100.2", ttl=64, id=1234, flags="DF")
-ARP(op=1, hwsrc="aa:bb:cc:dd:ee:ff", psrc="192.168.100.1",
-    hwdst="00:00:00:00:00:00", pdst="192.168.100.2")
+IP(src="192.168.56.1", dst="192.168.56.2", ttl=64, id=1234, flags="DF")
+ARP(op=1, hwsrc="aa:bb:cc:dd:ee:ff", psrc="192.168.56.1",
+    hwdst="00:00:00:00:00:00", pdst="192.168.56.2")
 ICMP(type=8, code=0, id=1, seq=1)
 
 # Layer 4
@@ -2033,14 +2034,14 @@ RandShort()    # random 16-bit integer
 RandInt()      # random 32-bit integer
 
 # Fragment
-fragments = fragment(IP(dst="10.0.0.1")/UDP()/payload, fragsize=8)
+fragments = fragment(IP(dst="192.168.56.1")/UDP()/payload, fragsize=8)
 
 # Fuzz (random field values)
 fuzz(IP()/TCP())
 
 # Get interface MAC
 get_if_hwaddr("eth0")   # returns "aa:bb:cc:dd:ee:ff"
-get_if_addr("eth0")     # returns "192.168.100.1"
+get_if_addr("eth0")     # returns "192.168.56.1"
 
 # Checksum calculation (Scapy does this automatically)
 # Delete checksum field to force recalculation:
@@ -2097,7 +2098,7 @@ def scan_port(target, port, timeout=1):
     return port, "unknown"
 
 with ThreadPoolExecutor(max_workers=64) as pool:
-    futures = [pool.submit(scan_port, "192.168.100.2", p) for p in range(1, 1025)]
+    futures = [pool.submit(scan_port, "192.168.56.2", p) for p in range(1, 1025)]
     for f in futures:
         port, state = f.result()
         if state == "open":
@@ -2131,7 +2132,7 @@ client = anthropic.Anthropic()
 
 def ask_stream(question: str):
     with client.messages.stream(
-        model="claude-opus-4-6",
+        model="claude-opus-4-8",
         max_tokens=512,
         system="You are a network security expert.",
         messages=[{"role": "user", "content": question}],
