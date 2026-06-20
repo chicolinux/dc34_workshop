@@ -28,8 +28,9 @@ All exercises run inside an isolated two-VM lab (Kali attacker + Ubuntu target).
 - Basic TCP/IP: you can explain what a SYN-ACK is and draw a TCP handshake
 - Linux CLI: comfortable with `ip`, `ss`, `tcpdump`, `iptables`
 - Scapy is **not** a prerequisite — it is what you are here to learn
-- **Bring your lab ready:** the two VMs are **not** provided — build them yourself and install all
-  dependencies *before* arriving (do not rely on conference Wi-Fi). See `setup/README.md`.
+- **Bring your lab ready:** the three VMs are **not** provided — build them yourself and install all
+  dependencies *before* arriving (do not rely on conference Wi-Fi). See the
+  [Do this before the workshop](#do-this-before-the-workshop) section below.
 
 ---
 
@@ -86,15 +87,15 @@ On workshop day, `cd ~/dc34_workshop && vagrant up && vagrant ssh attacker` and 
 
 | # | Module | Time | Key Technique |
 |---|--------|------|---------------|
-| 0 | Setup & Orientation | 15 min | Verify lab, Scapy REPL tour |
-| 1 | Scapy Fundamentals | 35 min | Packet crafting, send/recv, PCAP I/O |
-| 2 | Active Recon & Scanning | 35 min | SYN scan, OS fingerprinting, IDS evasion |
-| 3 | ARP & ICMP Manipulation | 30 min | ARP MitM, ICMP redirect, route injection |
+| 0 | [Setup & Orientation](setup/README.md) | 15 min | Verify lab, Scapy REPL tour |
+| 1 | [Scapy Fundamentals](module1/README.md) | 35 min | Packet crafting, send/recv, PCAP I/O |
+| 2 | [Active Recon & Scanning](module2/README.md) | 35 min | SYN scan, OS fingerprinting, IDS evasion |
+| 3 | [ARP & ICMP Manipulation](module3/README.md) | 30 min | ARP MitM, ICMP redirect, route injection |
 | — | Break | 10 min | — |
-| 4 | TCP/IP Stack Abuse | 35 min | Session hijacking, SYN flood, fragmentation |
-| 5 | Protocol Fuzzing | 30 min | `fuzz()`, custom protocol fuzzer, crash triage |
-| 6 | Covert Channels | 30 min | ICMP C2, DNS exfiltration, TCP header channels |
-| 7 | Capstone | 20 min | Full kill chain: recon → exploit → exfil |
+| 4 | [TCP/IP Stack Abuse](module4/README.md) | 35 min | Session hijacking, SYN flood, fragmentation |
+| 5 | [Protocol Fuzzing](module5/README.md) | 30 min | `fuzz()`, custom protocol fuzzer, crash triage |
+| 6 | [Covert Channels](module6/README.md) | 30 min | ICMP C2, DNS exfiltration, TCP header channels |
+| 7 | [Capstone](capstone/README.md) | 20 min | Full kill chain: recon → exploit → exfil |
 
 ---
 
