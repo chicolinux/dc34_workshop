@@ -24,6 +24,7 @@ from collections import defaultdict
 from scapy.all import ARP, Ether, sniff, conf
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 # MAC-to-IP and IP-to-MAC tables
 mac_to_ip: dict[str, set] = defaultdict(set)

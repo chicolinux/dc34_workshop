@@ -93,7 +93,7 @@ for chunk in narrator.narrate_attack_step(
     print(chunk, end="", flush=True)
 
 # Narrate a full sequence (e.g., sr() results)
-answered, _ = sr(IP(dst="10.0.0.2")/TCP(dport=(1,1024), flags="S"), timeout=2)
+answered, _ = sr(IP(dst="192.168.56.2")/TCP(dport=(1,1024), flags="S"), timeout=2)
 for chunk in narrator.narrate_sequence([r for _, r in answered], "SYN scan results"):
     print(chunk, end="", flush=True)
 
@@ -110,7 +110,7 @@ narrator.set_context("arp_mitm")
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `attack_context` | `"general"` | Initial framing context |
-| `model` | `"claude-opus-4-6"` | Claude model to use |
+| `model` | `"claude-opus-4-8"` | Claude model to use |
 | `max_history` | `20` | Conversation turns to retain |
 
 ---
@@ -210,11 +210,11 @@ from module7.packet_narrator import PacketNarrator
 from module2.syn_scanner import syn_scan
 
 narrator = PacketNarrator(attack_context="recon")
-results = syn_scan("10.0.0.2", "1-1024")
+results = syn_scan("192.168.56.2", "1-1024")
 
 for chunk in narrator.narrate_attack_step(
     "Port Scan Complete",
-    f"Found {sum(1 for s in results.values() if s == 'open')} open ports on 10.0.0.2",
+    f"Found {sum(1 for s in results.values() if s == 'open')} open ports on 192.168.56.2",
 ):
     print(chunk, end="", flush=True)
 ```
@@ -223,7 +223,7 @@ for chunk in narrator.narrate_attack_step(
 
 ## Cost Estimates
 
-Rough estimates at claude-opus-4-6 pricing with prompt caching active:
+Rough estimates at claude-opus-4-8 pricing with prompt caching active:
 
 | Scenario | Approx. cost / hour |
 |----------|---------------------|

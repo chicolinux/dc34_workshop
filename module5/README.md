@@ -37,13 +37,13 @@ from scapy.all import fuzz, IP, TCP, DNS, DNSQR
 fuzz(IP())
 
 # Fix destination, randomize everything else
-fuzz(IP(dst="10.0.0.2"))
+fuzz(IP(dst="192.168.56.2"))
 
 # Fully random DNS query
 fuzz(DNS(rd=1, qd=DNSQR(qname="test.com")))
 
 # Combine layers: fixed IP, fuzzed TCP header
-IP(dst="10.0.0.2") / fuzz(TCP(dport=80))
+IP(dst="192.168.56.2") / fuzz(TCP(dport=80))
 ```
 
 ## Boundary Value Strategy

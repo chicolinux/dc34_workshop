@@ -71,6 +71,7 @@ def _sniffer_worker(iface: str, bpf: str):
     """Background thread: sniff packets and push to _pkt_queue."""
     from scapy.all import sniff, conf
     conf.verb = 0
+    conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
     def push(pkt):
         try:
@@ -479,7 +480,7 @@ with st.expander("⚡ Attack Scenario Narrations (no live capture needed)", expa
             "recon",
             "narrate_attack_step",
             "SYN Port Scan Completed",
-            "Sent SYN probes to ports 1-1024 on 10.0.0.2. "
+            "Sent SYN probes to ports 1-1024 on 192.168.56.2. "
             "Received SYN-ACK on ports 22, 80, 443, 9000. "
             "All other ports returned RST or no response. "
             "Immediately sent RST to each open port to avoid completing the handshake.",
@@ -488,8 +489,8 @@ with st.expander("⚡ Attack Scenario Narrations (no live capture needed)", expa
             "arp_mitm",
             "narrate_attack_step",
             "ARP Cache Poisoning Active",
-            "Sent gratuitous ARP replies to 10.0.0.2 claiming 10.0.0.254 is at attacker MAC. "
-            "Sent gratuitous ARP replies to 10.0.0.254 claiming 10.0.0.2 is at attacker MAC. "
+            "Sent gratuitous ARP replies to 192.168.56.2 claiming 192.168.56.254 is at attacker MAC. "
+            "Sent gratuitous ARP replies to 192.168.56.254 claiming 192.168.56.2 is at attacker MAC. "
             "IP forwarding enabled. Both caches now poisoned. Traffic flows through attacker.",
         ),
         "💥 Buffer Overflow Found": (
@@ -497,7 +498,7 @@ with st.expander("⚡ Attack Scenario Narrations (no live capture needed)", expa
             "narrate_attack_step",
             "Crash Detected on Port 9000",
             "Sent DC34 protocol frame with opcode=0xFF and 100-byte payload. "
-            "Server at 10.0.0.2:9000 stopped responding to canary PING probes. "
+            "Server at 192.168.56.2:9000 stopped responding to canary PING probes. "
             "Crash-triggering packet saved to crashes/crash_20260326_143022.pcap. "
             "Server recovered after ~8 seconds.",
         ),
@@ -505,7 +506,7 @@ with st.expander("⚡ Attack Scenario Narrations (no live capture needed)", expa
             "covert_c2",
             "narrate_attack_step",
             "ICMP C2 Command Executed",
-            "Sent ICMP echo request to 10.0.0.2 with 'whoami' encoded in payload. "
+            "Sent ICMP echo request to 192.168.56.2 with 'whoami' encoded in payload. "
             "Received ICMP echo reply with 'root' encoded in reply payload. "
             "Channel is bidirectional, uses session ID 0xA3F1 for tracking. "
             "Traffic appears as normal ping activity to casual inspection.",

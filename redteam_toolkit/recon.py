@@ -18,7 +18,7 @@ def sweep(network: str, method: str = "arp", iface: str = None, workers: int = 6
     Discover live hosts on a network.
 
     Args:
-        network:  CIDR range, e.g. '10.0.0.0/24'
+        network:  CIDR range, e.g. '192.168.56.0/24'
         method:   'arp' | 'icmp' | 'tcp' | 'udp' | 'all'
         iface:    interface name (auto-detect if None)
         workers:  thread count

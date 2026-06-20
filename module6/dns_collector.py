@@ -35,6 +35,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 EXFIL_SUFFIX = ".exfil.attacker.lab"
 

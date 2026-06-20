@@ -16,8 +16,8 @@ Bandwidth is low but stealth is high — these channels cross firewalls
 and deep packet inspection that only checks packet content, not field values.
 
 Usage:
-  sudo python3 module6/tcp_covert.py --demo ipid   --send "HELLO" --target 10.0.0.2
-  sudo python3 module6/tcp_covert.py --demo timing --send "HI"    --target 10.0.0.2
+  sudo python3 module6/tcp_covert.py --demo ipid   --send "HELLO" --target 192.168.56.2
+  sudo python3 module6/tcp_covert.py --demo timing --send "HI"    --target 192.168.56.2
   sudo python3 module6/tcp_covert.py --recv ipid   --iface eth0
 """
 
@@ -33,6 +33,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 # ── Channel 1: IP Identification field ────────────────────────────────────────
 
@@ -231,7 +232,7 @@ def main():
     group.add_argument("--recv", choices=[k for k, v in CHANNELS.items() if v[1]], help="Receive mode")
 
     parser.add_argument("--send",   default="DEFCON34", help="Message to send (default: DEFCON34)")
-    parser.add_argument("--target", default="10.0.0.2")
+    parser.add_argument("--target", default="192.168.56.2")
     parser.add_argument("--port",   type=int, default=80)
     parser.add_argument("--iface",  default=conf.iface)
     parser.add_argument("--delay",  type=float, default=0.1)

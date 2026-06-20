@@ -4,8 +4,8 @@ Module 2 — Host Discovery
 Performs ARP sweep (Layer 2) and ICMP/TCP ping (Layer 3) in parallel.
 
 Usage:
-  sudo python3 module2/host_discovery.py 10.0.0.0/24
-  sudo python3 module2/host_discovery.py 10.0.0.0/24 --method all
+  sudo python3 module2/host_discovery.py 192.168.56.0/24
+  sudo python3 module2/host_discovery.py 192.168.56.0/24 --method all
 """
 
 import argparse
@@ -20,6 +20,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 LIVE_HOSTS: dict[str, dict] = {}
 LOCK = threading.Lock()
@@ -51,7 +52,7 @@ def icmp_ping(ip: str, timeout: float = 1.0) -> dict | None:
 
 def tcp_syn_ping(ip: str, port: int = 80, timeout: float = 1.0) -> dict | None:
     """Send TCP SYN; host is up if we get SYN-ACK or RST."""
-    pkt = IP(dst=ip) / TCP(dport=port, sport=RandShort(), flags="S")
+    pkt = IP(dst=ip) / TCP(dport=port, sport=int(RandShort()), flags="S")
     reply = sr1(pkt, timeout=timeout, verbose=False)
     if reply and reply.haslayer(TCP):
         flags = reply[TCP].flags
@@ -64,7 +65,7 @@ def tcp_syn_ping(ip: str, port: int = 80, timeout: float = 1.0) -> dict | None:
 
 def udp_ping(ip: str, port: int = 33434, timeout: float = 2.0) -> dict | None:
     """Send UDP to a likely-closed high port; ICMP unreachable means host is up."""
-    pkt = IP(dst=ip) / UDP(dport=port, sport=RandShort())
+    pkt = IP(dst=ip) / UDP(dport=port, sport=int(RandShort()))
     reply = sr1(pkt, timeout=timeout, verbose=False)
     if reply and reply.haslayer(ICMP) and reply[ICMP].type == 3:
         return {"ip": ip, "method": "UDP-ping"}
@@ -136,7 +137,7 @@ def print_summary(results: dict):
 
 def main():
     parser = argparse.ArgumentParser(description="Host discovery with Scapy")
-    parser.add_argument("network", help="Target network, e.g. 10.0.0.0/24")
+    parser.add_argument("network", help="Target network, e.g. 192.168.56.0/24")
     parser.add_argument(
         "--method",
         choices=["arp", "icmp", "tcp", "udp", "all"],

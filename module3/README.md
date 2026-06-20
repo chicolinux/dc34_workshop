@@ -11,12 +11,12 @@ every host is on the same Layer 2 segment. ARP poisoning works there today.
 
 ```
 Normal state:
-  Victim ARP cache:  10.0.0.254 → aa:bb:cc:dd:ee:ff  (real gateway MAC)
-  Gateway ARP cache: 10.0.0.2   → 11:22:33:44:55:66  (real victim MAC)
+  Victim ARP cache:  192.168.56.254 → aa:bb:cc:dd:ee:ff  (real gateway MAC)
+  Gateway ARP cache: 192.168.56.2   → 11:22:33:44:55:66  (real victim MAC)
 
 After poisoning:
-  Victim ARP cache:  10.0.0.254 → attacker_mac  (traffic to GW goes to attacker)
-  Gateway ARP cache: 10.0.0.2   → attacker_mac  (traffic to victim goes to attacker)
+  Victim ARP cache:  192.168.56.254 → attacker_mac  (traffic to GW goes to attacker)
+  Gateway ARP cache: 192.168.56.2   → attacker_mac  (traffic to victim goes to attacker)
 
 With IP forwarding on attacker:
   victim → attacker → gateway → internet

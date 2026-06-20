@@ -10,7 +10,7 @@ import socket
 import subprocess
 import importlib
 
-TARGET_IP = "10.0.0.2"
+TARGET_IP = "192.168.56.2"
 MIN_PYTHON = (3, 10)
 MIN_SCAPY = (2, 5, 0)
 
@@ -70,7 +70,7 @@ else:
 section("Scapy Installation")
 try:
     import scapy
-    from scapy.all import conf, IP, TCP, Ether, ARP, ICMP, DNS, Raw
+    from scapy.all import conf, IP, TCP, UDP, Ether, ARP, ICMP, DNS, Raw
     from scapy.all import send, sendp, sr, sr1, srp, sniff, wrpcap, rdpcap
     from scapy.all import fuzz, fragment, RandIP, RandShort
 
@@ -115,20 +115,20 @@ try:
     else:
         warn("conf.iface is empty; set it manually: conf.iface = 'eth0'")
 
-    # Check if any interface has 10.0.0.x
+    # Check if any interface has 192.168.56.x
     from scapy.all import get_if_addr
     found_lab_ip = False
     for iface in ifaces:
         try:
             addr = get_if_addr(iface)
-            if addr.startswith("10.0.0."):
+            if addr.startswith("192.168.56."):
                 ok(f"Lab IP {addr} found on interface {iface}")
                 found_lab_ip = True
         except Exception:
             pass
     if not found_lab_ip:
         warn(
-            "No interface with 10.0.0.x found. "
+            "No interface with 192.168.56.x found. "
             "If using a different network range, adjust TARGET_IP at top of this script."
         )
 except Exception as e:

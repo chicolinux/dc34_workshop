@@ -17,8 +17,8 @@ Monitor on target:
   watch -n1 'netstat -an | grep SYN_RECV | wc -l'
 
 Usage:
-  sudo python3 module4/syn_flood.py --target 10.0.0.2 --port 80
-  sudo python3 module4/syn_flood.py --target 10.0.0.2 --port 80 --count 10000 --duration 30
+  sudo python3 module4/syn_flood.py --target 192.168.56.2 --port 80
+  sudo python3 module4/syn_flood.py --target 192.168.56.2 --port 80 --count 10000 --duration 30
 """
 
 import argparse
@@ -28,6 +28,7 @@ import threading
 from scapy.all import IP, TCP, send, conf, RandIP, RandShort
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 stop_event = threading.Event()
 sent_count = 0

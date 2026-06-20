@@ -18,10 +18,10 @@ ICMP Redirect structure (RFC 792):
 
 Usage:
   sudo python3 module3/icmp_redirect.py \
-      --victim 10.0.0.2 \
-      --gateway 10.0.0.254 \
+      --victim 192.168.56.2 \
+      --gateway 192.168.56.254 \
       --redirect-host 8.8.8.8 \
-      --attacker 10.0.0.1 \
+      --attacker 192.168.56.1 \
       --iface eth0
 """
 
@@ -35,6 +35,7 @@ from scapy.all import (
 )
 
 conf.verb = 0
+conf.iface = conf.route.route("192.168.56.0")[0]  # default to isolated lab NIC (not Vagrant NAT)
 
 
 def build_icmp_redirect(

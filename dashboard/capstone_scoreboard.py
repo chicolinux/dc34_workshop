@@ -17,7 +17,7 @@ Run (no root needed — no raw sockets):
     streamlit run dashboard/capstone_scoreboard.py
 
 Best displayed in full-screen browser (F11).
-Accessible to all attendees at: http://10.0.0.1:8501
+Accessible to all attendees at: http://192.168.56.1:8501
 """
 
 import time

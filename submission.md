@@ -276,46 +276,51 @@ capstone, but not every student needs to complete every exercise to take value f
 
 ## VM Requirements
 
-**What are the requirements to RUN the VM that you will be providing?**
+**What are the requirements to RUN the lab VMs?**
 
-Two VMs are provided per student workstation (attacker + target), distributed as OVA files
-importable into any major hypervisor.
+**No VMs are distributed.** Students build their own two-VM lab on their own laptop using a
+**Vagrantfile** in the workshop repository. A single `vagrant up` downloads the base boxes from
+Vagrant Cloud, builds both VMs, configures the isolated network, and installs/configures all software
+automatically. Students run this **before** the workshop (per `setup/README.md`).
 
-**Hypervisor (any one of):**
-- VMware Workstation Pro 17+ or VMware Fusion 13+ (recommended)
-- VirtualBox 7.0+ (also recommended)
-- QEMU/KVM (Linux hosts)
+**Required host software:**
+- VirtualBox 7.0+ and Vagrant 2.4+ (the only things a student installs by hand)
+- VMware Workstation Pro 17+ / Fusion 13+ also works as the hypervisor
 
 **Minimum hardware:**
 - CPU: 4 physical cores (8 logical threads), the two VMs share resources.
 - RAM: 8 GB total system RAM (4 GB allocated to attacker VM, 2 GB to target VM).
-- Disk: 25 GB free space for both OVAs after extraction.
-- Network: Host-only or NAT adapter for the isolated lab bridge (no external access required)
+- Disk: 25 GB free space for both VMs.
+- Network: VirtualBox internal network for the isolated lab (no external access required)
 
 **Recommended hardware:**
 - CPU: 6+ cores
 - RAM: 16 GB
 - SSD storage (noticeably faster VM boot and Scapy I/O)
 
-**VM details:**
-- Attacker VM: Kali Linux 2024.x, Python 3.11, Scapy 2.5+, all workshop dependencies
-  pre-installed, workshop repository cloned to `/home/kali/dc34_workshop`
-- Target VM: Ubuntu 22.04 LTS minimal, vulnerable services pre-configured, no GUI
+**VMs Vagrant builds automatically:**
+- Attacker VM: `kalilinux/rolling` (official Kali box), Python 3, the **latest Scapy installed from
+  source** (`github.com/secdev/scapy`), plus all workshop dependencies and the repo (mounted at
+  `/vagrant`). Headless/CLI — dashboards are reached from the host browser via a forwarded port.
+- Target VM: `bento/ubuntu-24.04` minimal, the vulnerable fuzz server and lab services configured
+  and started on boot per `setup/README.md`.
 
 **Network configuration:**
-- Both VMs connected to an isolated host-only bridge (`virbr1`, `192.168.100.0/24`)
-- Attacker: `192.168.100.1` | Target: `192.168.100.2` | Gateway: `192.168.100.254`
-- No external internet access required during the workshop (all dependencies pre-installed)
+- Both VMs on an isolated VirtualBox internal network (`192.168.56.0/24`)
+- Attacker: `192.168.56.1` | Target: `192.168.56.2` | Gateway: `192.168.56.254` (simulated)
+- No external internet access required during the workshop (all dependencies installed beforehand)
 
 ---
 
-## VM Download URL
+## VM Setup Instructions
 
-**What is the URL where the VM will be available for download?**
+**Where do students get the VMs?**
 
-The VM OVA files will be available for download at:
+No VMs are distributed as files. Students build the lab themselves with one command — `vagrant up`
+from the workshop repository — which provisions both VMs end to end. Full instructions:
 
-> **URL to be published 30 days before DEFCON 34**
+> **`setup/README.md`** in the workshop repo — Vagrant/VirtualBox prerequisites, `vagrant up`,
+> the isolated-network layout, and per-VM software (including Scapy from source).
 
 ---
 
@@ -327,17 +332,16 @@ The VM OVA files will be available for download at:
 - Any laptop capable of running the VMs described above (4-core CPU, 8 GB RAM minimum).
 - Operating system: Windows 10/11, macOS 12+, or any modern Linux distribution.
 - At least 25 GB of free disk space before the workshop.
-- One USB-A or USB-C port available (USB drive distribution of VMs as backup).
 
-### Software to install before arriving (required)
-Students must install one of the following **before** arriving at DEFCON, do not rely on
-conference Wi-Fi for software downloads:
+### Software and VMs to prepare before arriving (required)
+Students must do the following **before** arriving at DEFCON — do not rely on conference Wi-Fi for
+downloads:
 
-| Software | Version | Download |
-|----------|---------|---------|
-| VMware Workstation Pro / Fusion | 17+ / 13+ | vmware.com |
-| *or* VirtualBox | 7.0+ | virtualbox.org |
-| Workshop VM OVAs | provided pre-conference | (link emailed to registrants) |
+| Item | Version / Source | Notes |
+|------|------------------|-------|
+| VirtualBox | 7.0+ — virtualbox.org | Supported hypervisor (VMware 17+/13+ also works) |
+| Vagrant | 2.4+ — developer.hashicorp.com/vagrant | Provisions both VMs via `vagrant up` |
+| Lab VMs | built by `vagrant up` per `setup/README.md` | Run once before arriving; downloads boxes + all deps |
 
 ### Software to install before arriving (recommended)
 | Software | Purpose |
