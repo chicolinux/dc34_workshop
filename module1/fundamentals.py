@@ -12,7 +12,7 @@ from scapy.all import (
     sniff, AsyncSniffer,
     wrpcap, rdpcap,
     conf, ls, lsc,
-    RandShort,
+    hexdump, RandShort,
 )
 
 TARGET = "192.168.56.2"
@@ -40,8 +40,8 @@ def section_construction():
     # This is what the packet looks like *on the wire*.
     pkt.show2()
 
-    # .hexdump() shows the raw bytes
-    pkt.hexdump()
+    # hexdump(pkt) shows the raw bytes — standalone function in Scapy 2.6+
+    hexdump(pkt)
 
     # Access fields by index or by layer class
     print("Destination IP :", pkt[IP].dst)
