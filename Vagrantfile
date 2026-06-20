@@ -2,18 +2,47 @@
 # vi: set ft=ruby :
 #
 # DEF CON 34 — Offensive Packet Wizardry with Scapy
-# Two-VM lab, fully provisioned. Build it with:  vagrant up
+# Three-VM lab, fully provisioned. Build it with:  vagrant up
 #
-#   attacker (Kali Linux)   192.168.56.1   — your machine, all tooling installed
-#   target   (Ubuntu 24.04) 192.168.56.2   — the victim, vulnerable services running
-#   gateway                 192.168.56.254 — simulated (no real router needed)
+#   attacker (Kali Linux)    192.168.56.1   — your machine, all tooling installed
+#   target   (Ubuntu 24.04)  192.168.56.2   — the victim, vulnerable services running
+#   gateway  (Alpine Linux)  192.168.56.254 — real L2 node; enables ARP MitM exercises
 #
-# Isolated host-only network 192.168.56.0/24 — nothing touches your real network.
+# Isolated internal network 192.168.56.0/24 — nothing touches your real network.
 # Latest boxes on Vagrant Cloud as of build time:
 #   kalilinux/rolling 2025.2.1  (official OffSec box, command-line only)
 #   bento/ubuntu-24.04          (Chef bento; Canonical no longer ships Ubuntu boxes)
+#   generic/alpine319           (Alpine 3.19; tiny gateway, ~256 MB RAM)
 
 Vagrant.configure("2") do |config|
+
+  # ── Gateway VM: Alpine Linux (tiny L2 router for ARP MitM exercises) ──────
+  config.vm.define "gateway" do |gw|
+    gw.vm.box      = "generic/alpine319"
+    gw.vm.hostname = "gateway"
+
+    gw.vm.network "private_network", ip: "192.168.56.254", netmask: "255.255.255.0",
+      virtualbox__intnet: "dc34lab"
+
+    gw.vm.provider "virtualbox" do |vb|
+      vb.name   = "dc34-gateway"
+      vb.memory = 256
+      vb.cpus   = 1
+      vb.gui    = false
+      # Promiscuous mode so it sees all lab traffic when acting as a router.
+      vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+    end
+
+    gw.vm.provision "shell", inline: <<-'SHELL'
+      set -e
+      apk update
+      apk add iptables
+      # Enable IP forwarding so traffic actually routes through this VM when MitM'd.
+      sysctl -w net.ipv4.ip_forward=1
+      echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/99-ipforward.conf
+      echo "[+] gateway ready at 192.168.56.254, IP forwarding ON"
+    SHELL
+  end
 
   # ── Target VM: Ubuntu 24.04 (the victim) ──────────────────────────────────
   config.vm.define "target" do |target|
@@ -138,6 +167,10 @@ UNIT
       nmcli connection add type ethernet ifname eth1 con-name dc34-lab autoconnect yes \
         ipv4.method manual ipv4.addresses 192.168.56.1/24 ipv4.never-default yes
       nmcli connection up dc34-lab || true
+
+      # Enable IP forwarding so MitM exercises can relay intercepted traffic.
+      sysctl -w net.ipv4.ip_forward=1
+      grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 
       # Put the lab interface into promiscuous mode.
       ip link set eth1 promisc on || true

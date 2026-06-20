@@ -1,7 +1,7 @@
 # Lab Environment Setup
 
-> **No VMs or OVA files are provided.** The entire two-VM lab is built and provisioned automatically
-> on **your own machine** with **Vagrant + VirtualBox** — both VMs, the isolated network, and all
+> **No VMs or OVA files are provided.** The entire three-VM lab is built and provisioned automatically
+> on **your own machine** with **Vagrant + VirtualBox** — all VMs, the isolated network, and all
 > software are configured for you. Do this **before** the workshop; do not rely on conference Wi-Fi.
 
 ## Prerequisites (install on your host)
@@ -12,7 +12,7 @@
 | Vagrant | 2.4+ | <https://developer.hashicorp.com/vagrant/install> |
 | rsync | any | preinstalled on macOS/Linux; on Windows use Git Bash or WSL |
 
-You need ~25 GB free disk, 8 GB RAM (4 GB attacker + 2 GB target), and a 4-core CPU.
+You need ~25 GB free disk, ~10 GB RAM (4 GB attacker + 2 GB target + 256 MB gateway), and a 4-core CPU.
 
 ## Quick Start
 
@@ -34,6 +34,7 @@ vagrant destroy -f  # delete both VMs entirely
 
 | VM | Box (Vagrant Cloud) | Lab IP | Resources | Installed automatically |
 |----|---------------------|--------|-----------|-------------------------|
+| gateway | `generic/alpine319` | `192.168.56.254` | 1 vCPU / 256 MB | iptables, IP forwarding enabled |
 | attacker | `kalilinux/rolling` (2025.2.1) | `192.168.56.1` | 2 vCPU / 4 GB | git, tcpdump, nmap, tshark, python3-pip, **Scapy (latest, from source)**, all `requirements.txt` deps |
 | target | `bento/ubuntu-24.04` | `192.168.56.2` | 1 vCPU / 2 GB | python3, **Scapy from source** (for the Module 6 victim-side tools), dnsmasq, netcat-openbsd, inetutils-telnetd, IP forwarding, vulnerable fuzz server on `:9000` |
 
@@ -49,22 +50,24 @@ The workshop repository is mounted inside the attacker VM at **`/vagrant`**, so 
 ## Network Topology
 
 ```
-┌────────────────────┐                          ┌────────────────────┐
-│  attacker (Kali)   │                          │  target (Ubuntu)   │
-│  192.168.56.1/24   │─────────────────────────▶│  192.168.56.2/24   │
-│  eth1 (lab)        │  VirtualBox internal net │  eth1 (lab)        │
-└────────────────────┘  "dc34lab" 192.168.56.0/24 └──────────────────┘
-          │                                                │
-          └───────────────────┬────────────────────────────┘
-                              │
-                        192.168.56.254
-                     (simulated gateway)
+┌────────────────────┐      VirtualBox internal net      ┌────────────────────┐
+│  attacker (Kali)   │      "dc34lab" 192.168.56.0/24    │  target (Ubuntu)   │
+│  192.168.56.1/24   │◀─────────────────────────────────▶│  192.168.56.2/24   │
+│  eth1 (lab)        │                                   │  eth1 (lab)        │
+└────────────────────┘                                   └────────────────────┘
+          │                                                        │
+          └──────────────────────┬─────────────────────────────────┘
+                                 │
+                   ┌─────────────────────────┐
+                   │  gateway (Alpine Linux)  │
+                   │  192.168.56.254/24       │
+                   │  eth1 (lab)              │
+                   └─────────────────────────┘
 ```
 
 > **Internal network:** the lab is a VirtualBox *internal* network — fully isolated, with **no host
-> adapter**. The two VMs talk only to each other. You reach them from your host via `vagrant ssh` and
+> adapter**. The three VMs talk only to each other. You reach them from your host via `vagrant ssh` and
 > the forwarded port (Streamlit at `localhost:8501`), not by pinging `192.168.56.x` from the host.
-> `192.168.56.254` is a simulated gateway — nothing answers there, which is fine for the exercises.
 >
 > **Interface note:** Vagrant puts its NAT/SSH link on **`eth0`** and the lab network on the **second
 > NIC (`eth1`)** — the one holding a `192.168.56.x` address. The workshop scripts auto-select the lab
@@ -72,11 +75,13 @@ The workshop repository is mounted inside the attacker VM at **`/vagrant`**, so 
 > is normally needed. The attacker's `.1` is pinned by the provisioner (Kali's NetworkManager would
 > otherwise DHCP it).
 
-> **Two-VM limitation (ARP MitM / TCP injection):** `192.168.56.254` is a *simulated* gateway with no
-> host behind it, so `module3/arp_mitm.py` and `module4/tcp_injector.py` — which need to resolve and
-> poison a real victim↔gateway pair — cannot run a full intercept against `.254`. Everything that acts
-> directly against the target works (recon, scanning, fuzzing, ICMP/DNS covert channels). For a true
-> three-party MitM you would add a third "gateway" VM on the lab network.
+> **ARP MitM / TCP injection:** the gateway VM is a real L2 host at `.254`, so the full three-party
+> intercept works end-to-end:
+> ```
+> sudo python3 /vagrant/module3/arp_mitm.py --victim 192.168.56.2 --gateway 192.168.56.254
+> ```
+> IP forwarding is enabled on the gateway so traffic actually routes through the attacker when
+> caches are poisoned.
 
 ## Credentials
 
@@ -153,3 +158,9 @@ Re-install the latest from source: `cd /opt/scapy && sudo git pull && sudo pip3 
 **`conf.iface` shows the wrong interface (picks `eth0`/NAT instead of the lab):**
 Set it explicitly to the lab NIC: `conf.iface = "eth1"` (or whichever interface holds the `192.168.56.x`
 address from `ip addr`). Most scripts also accept an `--iface eth1` flag.
+
+**ICMP C2 agent — attacker receives empty replies or no command output:**
+The ICMP C2 agent (`module6/icmp_agent.py`) temporarily sets `icmp_echo_ignore_all=1` while running
+so its Scapy-crafted replies (carrying command output) are the only ones the attacker receives.
+Without this, the Linux kernel on the target auto-replies to every ICMP echo request before Scapy
+can respond. Normal ping behavior is restored when the agent exits (Ctrl-C).

