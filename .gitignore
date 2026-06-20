@@ -2,6 +2,10 @@
 .vagrant/
 /scapy/
 
+# Local-only instructor files — not for students
+CLAUDE.md
+submission.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
