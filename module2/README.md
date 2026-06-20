@@ -41,6 +41,38 @@ TCP opt order       MSS,SACK,TS,    MSS,WS,NOP,     MSS,NOP,NOP,
 TTL decays by 1 per hop. If you observe TTL=60, the starting TTL was likely 64
 (Linux/macOS, 4 hops away). If TTL=124, starting TTL was likely 128 (Windows).
 
+### TCP Options Order — Why It Matters
+
+The order in which a host lists TCP options in its SYN packet is one of the most reliable
+OS fingerprinting signals. Each OS has a fixed, characteristic sequence:
+
+| Option | Full Name | Purpose |
+|--------|-----------|---------|
+| `MSS` | Maximum Segment Size | Max payload bytes per segment (typically 1460) |
+| `SACK` | Selective Acknowledgement | ACK non-contiguous blocks, reducing retransmits |
+| `TS` | Timestamps | RTT measurement + PAWS (Protection Against Wrapped Sequence numbers) |
+| `WS` | Window Scale | Scales the receive window beyond the 65535-byte limit |
+| `NOP` | No Operation | 1-byte padding to align options to 4-byte boundaries |
+
+Linux sends `MSS, SACK, TS, NOP, WS` — the order alone, before examining any values, is
+enough to distinguish Linux from Windows or macOS. In Scapy, craft the Linux fingerprint like this:
+
+```python
+IP(dst="192.168.56.2") / TCP(
+    dport=80, flags="S",
+    options=[
+        ("MSS",       1460),
+        ("SAckOK",    b""),
+        ("Timestamp", (0, 0)),
+        ("NOP",       None),
+        ("WScale",    7),
+    ]
+)
+```
+
+`os_fingerprint.py` sends this probe and compares the SYN-ACK response's option order, TTL,
+and window size against known OS profiles to make a guess.
+
 ## Evasion Techniques
 
 ### IP Fragmentation
