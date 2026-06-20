@@ -71,11 +71,29 @@ sends packets in the foreground.
 
 ## PCAP I/O
 
+**Display live and save to file at the same time** — use `prn` for real-time output while
+`sniff` stores packets, then write them to disk after:
+
 ```python
-wrpcap("/tmp/demo.pcap", pkts)          # write a packet list
-loaded = rdpcap("/tmp/demo.pcap")       # read it back
-icmp = [p for p in loaded if p.haslayer(ICMP)]
+pkts = sniff(iface="eth1", filter="icmp or arp", count=5, timeout=10,
+             prn=lambda p: p.summary())   # prints each packet as it arrives
+wrpcap("/tmp/capture.pcap", pkts)         # save everything captured to disk
 ```
+
+Swap `p.summary()` for `p.show()` if you want the full field-by-field breakdown per packet.
+
+**Reading back and filtering:**
+
+```python
+wrpcap("/tmp/demo.pcap", pkts)                          # write a packet list
+loaded = rdpcap("/tmp/demo.pcap")                       # read it back
+icmp = [p for p in loaded if p.haslayer(ICMP)]         # filter by layer
+```
+
+**pcap vs pcapng:** `wrpcap()` writes classic **pcap** (libpcap format) — the default for this
+workshop. It is universally supported by Wireshark, tcpdump, and tshark with no extra flags.
+Scapy 2.5+ also provides `wrpcapng()` / `rdpcapng()` for the newer **pcapng** format, but classic
+pcap is simpler and sufficient for all workshop exercises.
 
 ## Scripting Notes
 
