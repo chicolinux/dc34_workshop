@@ -1,5 +1,12 @@
-# Vagrant runtime state and any local Scapy source clone
+# Vagrant runtime state — generated when VMs are spun up, never commit these
 .vagrant/
+*.box
+Vagrantfile.local
+vagrant_ansible_inventory
+.vagrant_env
+vagrant-*/
+
+# Local Scapy source clone (installed from here, not committed)
 /scapy/
 
 # Local-only instructor files — not for students
