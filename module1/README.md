@@ -95,6 +95,30 @@ workshop. It is universally supported by Wireshark, tcpdump, and tshark with no 
 Scapy 2.5+ also provides `wrpcapng()` / `rdpcapng()` for the newer **pcapng** format, but classic
 pcap is simpler and sufficient for all workshop exercises.
 
+## Generating Test Traffic from the Target
+
+When practicing sniffing you need something on the wire to capture. Run these from the **target VM**
+(`vagrant ssh target`) to generate realistic traffic while your sniffer runs on the attacker:
+
+| Tool | Command | Traffic type |
+|------|---------|--------------|
+| `ping` | `ping 192.168.56.1` | ICMP echo — simplest smoke test |
+| `curl` | `curl http://192.168.56.1` | Real HTTP GET with `Host:` header — best for sniffing exercises |
+| `wget` | `wget -q -O /dev/null http://192.168.56.1` | Same as curl, good for repeated downloads |
+
+`curl` is the preferred tool for most sniffing exercises — it generates proper HTTP headers
+(including `Host:`) that `arp_mitm.py`'s intercept callback looks for in raw TCP payloads.
+
+For **filter** reference when sniffing the corresponding traffic:
+
+```python
+# On attacker — start sniffer, then run curl/ping on target during the sleep
+s = AsyncSniffer(iface="eth1", filter="icmp"); s.start()        # for ping
+s = AsyncSniffer(iface="eth1", filter="tcp port 80"); s.start() # for curl/wget
+import time; time.sleep(10)   # generate traffic from target in this window
+s.stop(); s.results
+```
+
 ## Scripting Notes
 
 - Set `conf.verb = 0` (and/or quiet the `scapy.runtime` logger) so scripts don't spam per-packet output.
