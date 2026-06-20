@@ -107,6 +107,60 @@ import time, random
 time.sleep(random.uniform(0.05, 0.2))   # 5-20ms between probes
 ```
 
+## Verifying Evasion with Snort
+
+The target VM runs **Snort IDS** on `eth1` with the community ruleset and the `sfPortscan` and
+`frag3` preprocessors enabled. Use it as a truth oracle: if Snort logs an alert, the technique
+was caught; if the alert log stays silent, the evasion worked.
+
+### Watch alerts in real time (run on the target VM)
+
+```bash
+# Clear old alerts and watch live:
+sudo truncate -s 0 /var/log/snort/alert && sudo tail -f /var/log/snort/alert
+```
+
+### Step 1 — Establish a baseline (plain scan, should be caught)
+
+```bash
+# Attacker:
+sudo python3 /vagrant/module2/syn_scanner.py 192.168.56.2 --ports 1-1024
+```
+
+Within seconds the alert log on the target should show lines like:
+
+```
+06/20-21:20:24  [**] [122:1:1] (portscan) TCP Portscan [**]
+[Classification: Attempted Information Leak] [Priority: 2]
+{PROTO:255} 192.168.56.1 -> 192.168.56.2
+```
+
+### Step 2 — Apply evasion and compare
+
+Run each technique from the Evasion Techniques section above, then check whether the alert
+log produced new entries:
+
+| Technique | Expected Snort result |
+|-----------|----------------------|
+| Plain SYN scan | **Caught** — sfPortscan fires immediately |
+| IP fragmentation | **Partial** — sfPortscan silent, frag3 may log reassembly events |
+| TTL jitter | **Caught** — sfPortscan still fires; TTL variance alone isn't enough |
+| Inter-packet delay (slow scan) | **Evaded** — stays under PPS threshold; no alert |
+| Fragmentation + TTL jitter + delay | **Often evaded** — real-world combination |
+
+### What the results mean
+
+- **`[122:1]` portscan alert** → `sfPortscan` caught the scan rate; evasion failed.
+- **`[123:x]` frag alerts** → `frag3` reassembled your fragments; packet-level evasion failed.
+- **No new lines** during the scan window → evasion succeeded against this ruleset.
+
+> Snort status and alert location:
+> ```bash
+> sudo systemctl status dc34-snort        # check it is running
+> sudo tail /var/log/snort/alert          # one-shot view of recent alerts
+> sudo truncate -s 0 /var/log/snort/alert # clear between tests
+> ```
+
 ## Exercises
 
 | Exercise | File | Objective |

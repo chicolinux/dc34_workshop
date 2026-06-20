@@ -106,6 +106,82 @@ UNIT
       systemctl daemon-reload
       systemctl enable --now dc34-target.service
 
+      # ── Snort IDS (Module 2 evasion verification) ─────────────────────────
+      # Pre-seed the interface so the package install is fully non-interactive.
+      echo "snort snort/interface string eth1" | debconf-set-selections
+      if apt-get install -y snort; then
+        IDS=snort
+        echo "[+] Snort installed"
+      else
+        # Fallback: Suricata is always in the Ubuntu 24.04 repos and accepts
+        # the same Snort community rule format.
+        apt-get install -y suricata
+        IDS=suricata
+        echo "[+] Snort not available — Suricata installed as IDS fallback"
+      fi
+
+      if [ "$IDS" = "snort" ]; then
+        # HOME_NET = target only so that the attacker (192.168.56.1) is classified as
+        # EXTERNAL_NET — this is what makes sfPortscan fire on attacker-vs-target scans.
+        sed -i 's|^var HOME_NET.*|var HOME_NET [192.168.56.2]|' /etc/snort/snort.conf
+        sed -i 's|^ipvar HOME_NET.*|ipvar HOME_NET [192.168.56.2]|' /etc/snort/snort.conf
+        sed -i 's|^var EXTERNAL_NET.*|var EXTERNAL_NET !$HOME_NET|' /etc/snort/snort.conf
+        sed -i 's|^ipvar EXTERNAL_NET.*|ipvar EXTERNAL_NET !$HOME_NET|' /etc/snort/snort.conf
+
+        # Uncomment the sfPortscan preprocessor line (catches SYN scans and slow scans).
+        # The default Ubuntu snort.conf ships with this line commented out.
+        sed -i 's|^# *preprocessor sfportscan:.*|preprocessor sfportscan: proto { all } memcap { 10000000 } sense_level { low }|' \
+          /etc/snort/snort.conf
+
+        # sfPortscan outputs events via GID 122 — enable the preprocessor rules so they get
+        # human-readable names in the alert log.
+        mkdir -p /etc/snort/preproc_rules
+        cat > /etc/snort/preproc_rules/preprocessor.rules <<'PREPROC'
+alert ( msg:"(portscan) TCP Portscan"; sid:1; gid:122; rev:1; classtype:attempted-recon; )
+alert ( msg:"(portscan) UDP Portscan"; sid:2; gid:122; rev:1; classtype:attempted-recon; )
+alert ( msg:"(portscan) ICMP Portscan"; sid:3; gid:122; rev:1; classtype:attempted-recon; )
+alert ( msg:"(portscan) TCP Decoy Portscan"; sid:4; gid:122; rev:1; classtype:attempted-recon; )
+alert ( msg:"(portscan) TCP Distributed Portscan"; sid:7; gid:122; rev:1; classtype:attempted-recon; )
+alert ( msg:"(portscan) TCP Filtered Portscan"; sid:10; gid:122; rev:1; classtype:attempted-recon; )
+alert ( msg:"(portscan) TCP Port Sweep"; sid:16; gid:122; rev:1; classtype:attempted-recon; )
+PREPROC
+        sed -i 's|^# *include \$PREPROC_RULE_PATH/preprocessor.rules.*|include $PREPROC_RULE_PATH/preprocessor.rules|' \
+          /etc/snort/snort.conf
+
+        # Download community rules (no auth required).
+        wget -q https://www.snort.org/downloads/community/community-rules.tar.gz \
+             -O /tmp/community-rules.tar.gz
+        tar -xzf /tmp/community-rules.tar.gz -C /etc/snort/rules/ --strip-components=1 2>/dev/null || true
+        # Ensure snort.conf includes the community rules file.
+        if ! grep -q 'community.rules' /etc/snort/snort.conf; then
+          echo 'include $RULE_PATH/community.rules' >> /etc/snort/snort.conf
+        fi
+
+        # Alert log directory owned by snort user (created by the package).
+        mkdir -p /var/log/snort
+        chown snort:snort /var/log/snort
+
+        # Validate config before writing the service.
+        snort -T -i eth1 -c /etc/snort/snort.conf -q && echo "[+] Snort config OK"
+
+        cat > /etc/systemd/system/dc34-snort.service <<'UNIT'
+[Unit]
+Description=Snort IDS — DC34 lab (Module 2 evasion verification)
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/snort -D -i eth1 -u snort -g snort -c /etc/snort/snort.conf -l /var/log/snort -A fast -q
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+        systemctl daemon-reload
+        systemctl enable --now dc34-snort.service
+        systemctl is-active dc34-snort.service && echo "[+] Snort IDS running on eth1 — alerts at /var/log/snort/alert"
+      fi
+
       echo "[+] target ready — vulnerable server on 192.168.56.2:9000"
     SHELL
   end
