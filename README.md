@@ -39,15 +39,46 @@ All exercises run inside an isolated two-VM lab (Kali attacker + Ubuntu target).
 |------|----|------|
 | attacker | 192.168.56.1 | Kali Linux (rolling), your machine |
 | target   | 192.168.56.2 | Ubuntu 24.04, your victim |
-| gateway  | 192.168.56.254 | Virtual router (simulated) |
+| gateway  | 192.168.56.254 | Alpine Linux, real L2 router (enables ARP MitM exercises) |
 
 Network: isolated VirtualBox internal network `192.168.56.0/24`, no internet access required during
 exercises.
 
 **No VMs are provided** — but you don't build them by hand either. A **Vagrantfile** in the repo root
-creates and fully provisions both VMs (Kali attacker + Ubuntu target), the isolated network, and all
-software with a single `vagrant up`. Do this **before** the workshop. See
-[`setup/README.md`](setup/README.md) for prerequisites and details.
+creates and fully provisions all three VMs, the isolated network, and all software with a single
+`vagrant up`. See the next section.
+
+---
+
+## Do this before the workshop
+
+Complete these steps **at home, before the day of the workshop**. Do not rely on conference Wi-Fi — the box downloads alone are several GB.
+
+- **Install [VirtualBox 7.0+](https://www.virtualbox.org/wiki/Downloads)** on your laptop (macOS, Windows, or Linux).
+- **Install [Vagrant 2.4+](https://developer.hashicorp.com/vagrant/install)** on your laptop.
+- **Install rsync** — already present on macOS and Linux; on Windows use Git Bash or WSL.
+- **Clone this repo** and enter it:
+  ```bash
+  git clone https://github.com/chicolinux/dc34_workshop.git ~/dc34_workshop
+  cd ~/dc34_workshop
+  ```
+- **Build and provision all three VMs** (downloads ~4 GB of boxes on first run, then provisions — allow 15–30 min):
+  ```bash
+  vagrant up
+  ```
+- **Log into the attacker VM** and verify the environment:
+  ```bash
+  vagrant ssh attacker
+  sudo python3 /vagrant/setup/verify_env.py
+  ```
+  Every check should print `[OK]`. If anything fails, see [`setup/README.md`](setup/README.md) for troubleshooting before the workshop.
+- **Shut the VMs down** when you're done verifying (saves RAM/battery until workshop day):
+  ```bash
+  exit          # leave the attacker VM
+  vagrant halt  # power off all three VMs
+  ```
+
+On workshop day, `cd ~/dc34_workshop && vagrant up && vagrant ssh attacker` and you're ready to go.
 
 ---
 
@@ -85,27 +116,17 @@ dc34_workshop/
 
 ---
 
-## Quick Start
+## Quick Start (on workshop day)
 
 ```bash
-# 1. Clone the workshop repo on your host (needs VirtualBox + Vagrant installed)
-git clone <repo_url> ~/workshop && cd ~/workshop
-
-# 2. Build and provision BOTH VMs automatically (first run downloads the boxes)
-vagrant up
-
-# 3. Log into the Kali attacker VM (the repo is mounted at /vagrant)
+cd ~/dc34_workshop   # the repo you cloned during pre-workshop setup
+vagrant up           # resumes the VMs you already built (fast — no re-download)
 vagrant ssh attacker
-
-# 4. Verify your environment
-sudo python3 /vagrant/setup/verify_env.py
-
-# 5. Launch Scapy interactive shell
-sudo scapy
+sudo scapy           # launch Scapy interactive shell and you're ready for Module 1
 ```
 
-> Prefer to build the VMs by hand? See the "Manual Setup" fallback in
-> [`setup/README.md`](setup/README.md).
+> First time here? Do the **"Do this before the workshop"** steps above first.
+> Manual setup without Vagrant? See [`setup/README.md`](setup/README.md).
 
 ---
 
