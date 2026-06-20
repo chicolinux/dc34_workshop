@@ -1,5 +1,22 @@
 # Module 1 — Scapy Fundamentals
 
+## Before You Start (Interactive REPL)
+
+When using the Scapy interactive shell (`sudo scapy`), the default interface is `eth0` — Vagrant's
+NAT link to the outside world. All lab traffic between attacker and target travels on **`eth1`**
+(the `192.168.56.0/24` internal network). Run these two lines once at the start of every REPL
+session so every `sniff()`, `send()`, and `sr1()` call uses the right NIC without needing an
+explicit `iface=` argument:
+
+```python
+conf.verb = 0                                          # silence per-packet noise
+conf.iface = conf.route.route("192.168.56.0")[0]      # pin to the lab NIC (eth1)
+```
+
+The workshop scripts do this for you automatically; it only matters in the interactive shell.
+
+---
+
 ## Learning Objectives
 
 - Construct packets layer by layer with the `/` stacking operator
@@ -18,7 +35,7 @@ Every layer is a Python class with named fields; `/` stacks them outward from th
 pkt = Ether() / IP(dst="192.168.56.2") / TCP(dport=80, flags="S")
 pkt.show()      # all layers and fields, with computed values
 pkt.show2()     # forces auto-fields (chksum, len) — what goes on the wire
-pkt.hexdump()   # raw bytes
+hexdump(pkt)    # raw bytes — standalone function in Scapy 2.6+, not a method
 pkt[TCP].flags  # access a field by layer class
 ```
 
@@ -41,10 +58,10 @@ supply MAC addresses and usually an `iface`.
 ## Sniffing
 
 ```python
-sniff(iface="eth0", filter="icmp or arp", count=5, timeout=10)   # blocking, BPF filter
-sniff(iface="eth0", filter="ip", prn=callback)                   # callback per packet
+sniff(iface="eth1", filter="icmp or arp", count=5, timeout=10)   # blocking, BPF filter
+sniff(iface="eth1", filter="ip", prn=callback)                   # callback per packet
 
-s = AsyncSniffer(iface="eth0", filter="tcp"); s.start()          # non-blocking, background thread
+s = AsyncSniffer(iface="eth1", filter="tcp"); s.start()          # non-blocking, background thread
 # ... send attack packets while it captures ...
 s.stop(); pkts = s.results
 ```
