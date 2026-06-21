@@ -110,8 +110,55 @@ Some edge routers and embedded devices still mishandle edge cases.
 
 | Exercise | File | Objective |
 |----------|------|-----------|
-| 4-A | `tcp_injector.py` | Inject payload into live Telnet/netcat session |
+| 4-A | `tcp_injector.py` | Inject payload into live netcat session (see walkthrough below) |
 | 4-B | `syn_flood.py` | SYN flood with randomized spoofed IPs |
 | standalone | `rst_injector.py` | Kill sessions by injecting RST |
 | demo | `ip_options.py` | LSRR, Record Route, fragmentation demo |
 | 4-X (extra) | manual | Route through LSRR waypoint to reach normally-blocked host |
+
+### Exercise 4-A Walkthrough — Session Hijacking
+
+The gateway VM runs a persistent plaintext TCP listener on port 9999. The target connects to
+it as the "victim user." The attacker ARP-poisons both ends, sniffs the live session, and
+injects a command into the stream.
+
+**Open three terminals before starting:**
+
+| Terminal | VM | Command |
+|----------|----|---------|
+| T1 (attacker) | `vagrant ssh attacker` | run the injector (step 3) |
+| T2 (victim) | `vagrant ssh target` | open the nc session (step 1) |
+| T3 (gateway) | `vagrant ssh gateway` | optional — watch gateway side |
+
+**Step 1 — Victim opens a plaintext session (T2):**
+```bash
+nc 192.168.56.254 9999
+```
+Type a few messages and press Enter so there is live traffic on the wire.
+
+**Step 2 — Keep T2 active and switch to T1.**
+
+**Step 3 — Attacker hijacks the session (T1):**
+```bash
+sudo python3 /vagrant/module4/tcp_injector.py \
+    --victim 192.168.56.2 \
+    --gateway 192.168.56.254 \
+    --port 9999
+```
+
+The injector will:
+1. ARP-poison both ends (target thinks gateway is at attacker's MAC, and vice versa)
+2. Sniff the wire for a data packet carrying live seq/ack numbers
+3. Forge a TCP packet with the correct 5-tuple, seq, ack and inject the payload
+4. Send RST to both sides to tear down the session
+5. Restore both ARP caches on exit
+
+**What you will see:**
+- T1: `[*] ARP poisoning ... [+] injected payload ... [*] RST sent`
+- T2: the injected text appears in the nc session, then the connection closes
+
+**Why TLS stops this attack:**
+SSH and HTTPS sessions cannot be hijacked this way. The injected bytes would fail the MAC
+verification on the encrypted channel and the session would terminate with an error — the
+payload is never interpreted as input. Session hijacking only works against cleartext
+protocols (Telnet, plain HTTP, unencrypted netcat, FTP).

@@ -35,12 +35,24 @@ Vagrant.configure("2") do |config|
 
     gw.vm.provision "shell", inline: <<-'SHELL'
       set -e
-      apk update
-      apk add iptables
+      apk update || true   # mirror warning is non-fatal
+      apk add iptables netcat-openbsd
       # Enable IP forwarding so traffic actually routes through this VM when MitM'd.
       sysctl -w net.ipv4.ip_forward=1
       echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/99-ipforward.conf
-      echo "[+] gateway ready at 192.168.56.254, IP forwarding ON"
+
+      # Persistent plaintext TCP listener on port 9999 for Module 4 session-hijacking exercise.
+      # The target VM connects here; the attacker ARP-poisons both ends and injects into the stream.
+      mkdir -p /etc/local.d
+      cat > /etc/local.d/dc34-nc.start <<'SH'
+#!/bin/sh
+while true; do nc -l -p 9999; done &
+SH
+      chmod +x /etc/local.d/dc34-nc.start
+      rc-update add local default || true
+      /etc/local.d/dc34-nc.start
+      sleep 1
+      nc -z 127.0.0.1 9999 && echo "[+] gateway ready at 192.168.56.254, IP forwarding ON, netcat listener on :9999"
     SHELL
   end
 
