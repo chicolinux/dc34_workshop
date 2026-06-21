@@ -1,5 +1,15 @@
 # Module 4 — TCP/IP Stack Abuse
 
+## Goals for this Module
+
+- Understand the TCP state machine and identify where each attack fits within it
+- Inject a payload into an established TCP session by calculating the correct seq/ack numbers
+- Kill arbitrary TCP connections with RST injection
+- Perform a SYN flood and observe its effect on the target's connection table
+- Craft packets with IP options (LSRR, Record Route) and manually fragment IP datagrams
+
+---
+
 ## TCP State Machine
 
 ```
@@ -21,6 +31,21 @@
           |            |
       FIN-WAIT      CLOSED
 ```
+
+| Step | State | What happened |
+|------|-------|---------------|
+| 1 | `CLOSED` → `SYN-SENT` | Client sends a SYN packet to initiate a connection |
+| 2 | `SYN-SENT` → `SYN-RECEIVED` | Server replies with SYN-ACK; client records the server's ISN |
+| 3 | `SYN-SENT` → `CLOSED` | Server sent RST instead of SYN-ACK — port closed or filtered |
+| 4 | `SYN-RECEIVED` → `ESTABLISHED` | Client sends the final ACK; three-way handshake complete |
+| 5 | `ESTABLISHED` | Data flows in both directions; seq/ack numbers increment with every byte sent |
+| 6 | `ESTABLISHED` → `FIN-WAIT` | Either side sends FIN to begin graceful teardown |
+| 7 | `ESTABLISHED` → `CLOSED` | Either side sends RST — immediate, ungraceful teardown |
+
+**Why ESTABLISHED is the hijacking target:** both sides have agreed on seq/ack numbers and
+the application is actively exchanging data. An attacker who can observe the traffic knows
+the current seq and ack values and can inject a forged packet that the server accepts as
+coming from the legitimate client.
 
 ## Session Hijacking Requirements
 

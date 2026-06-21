@@ -1,6 +1,6 @@
 # Module 2 — Active Recon and Scanning
 
-## Learning Objectives
+## Goals for this Module
 
 - Build port scanners that give you control Nmap abstracts away
 - Understand why each scan type works and when to use each

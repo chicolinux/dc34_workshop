@@ -1,5 +1,13 @@
 # Module 7 — AI Lab: PacketSage (Optional)
 
+## Goals for this Module
+
+- Connect a live Scapy packet sniffer to the Claude API for real-time narration
+- Understand how an LLM can map raw packet fields to attacker intent and MITRE ATT&CK techniques
+- Use the Streamlit dashboard to observe AI-generated commentary alongside live traffic
+
+---
+
 **Claude API + Scapy = live network intelligence**
 
 PacketSage is an optional add-on that turns your terminal or browser into an AI-powered

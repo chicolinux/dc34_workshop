@@ -1,5 +1,15 @@
 # Module 1 — Scapy Fundamentals
 
+## Goals for this Module
+
+- Construct packets layer by layer with the `/` stacking operator
+- Choose the right send/receive primitive for the job (`send`, `sr`, `sr1`, `sendp`, `srp1`)
+- Capture live traffic with blocking, callback, and asynchronous sniffers
+- Read and write PCAP files, and pull fields out of captured packets
+- Write Scapy that behaves well inside a script (not just the interactive shell)
+
+---
+
 ## Before You Start (Interactive REPL)
 
 When using the Scapy interactive shell (`sudo scapy`), the default interface is `eth0` — Vagrant's
@@ -14,16 +24,6 @@ conf.iface = conf.route.route("192.168.56.0")[0]      # pin to the lab NIC (eth1
 ```
 
 The workshop scripts do this for you automatically; it only matters in the interactive shell.
-
----
-
-## Learning Objectives
-
-- Construct packets layer by layer with the `/` stacking operator
-- Choose the right send/receive primitive for the job (`send`, `sr`, `sr1`, `sendp`, `srp1`)
-- Capture live traffic with blocking, callback, and asynchronous sniffers
-- Read and write PCAP files, and pull fields out of captured packets
-- Write Scapy that behaves well inside a script (not just the interactive shell)
 
 ---
 

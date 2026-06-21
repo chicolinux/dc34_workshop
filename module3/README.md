@@ -1,5 +1,16 @@
 # Module 3 — ARP and ICMP Manipulation
 
+## Goals for this Module
+
+- Understand why ARP has no authentication and how that enables poisoning attacks
+- Perform ARP cache poisoning to become an on-path attacker between victim and gateway
+- Craft gratuitous ARP and unicast ARP replies with Scapy
+- Intercept and inspect cleartext traffic flowing through the attacker machine
+- Restore ARP caches cleanly after an attack to avoid detection
+- Understand when ICMP Redirect can reroute traffic and how to send one
+
+---
+
 ## Checking the ARP Cache
 
 Run these on both the attacker and target VMs to observe cache state before and after poisoning:

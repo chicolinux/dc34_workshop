@@ -1,5 +1,15 @@
 # Module 5 — Protocol Fuzzing
 
+## Goals for this Module
+
+- Understand what network protocol fuzzing is and what classes of bugs it finds
+- Use Scapy's built-in `fuzz()` to generate random protocol variants with one line of code
+- Write a structured fuzzer that mutates specific fields in a custom binary protocol
+- Detect crashes and unexpected responses from a network service under test
+- Triage a crash to identify which input field triggered the bug
+
+---
+
 ## What is Network Protocol Fuzzing?
 
 Fuzzing sends unexpected, malformed, or random data to a program and

@@ -1,5 +1,13 @@
 # Lab Environment Setup
 
+## Goals for this Module
+
+- Verify the three-VM lab (attacker, target, gateway) is running and reachable
+- Confirm Scapy is installed with raw socket access on the attacker VM
+- Understand the lab topology: IP assignments, isolated network, and each VM's role
+
+---
+
 > **No VMs or OVA files are provided.** The entire three-VM lab is built and provisioned automatically
 > on **your own machine** with **Vagrant + VirtualBox** — all VMs, the isolated network, and all
 > software are configured for you. Do this **before** the workshop; do not rely on conference Wi-Fi.

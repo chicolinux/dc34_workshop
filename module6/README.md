@@ -1,5 +1,15 @@
 # Module 6 — Covert Channels
 
+## Goals for this Module
+
+- Understand the difference between storage channels and timing channels
+- Encode and exfiltrate data by hiding it inside ICMP echo request payloads
+- Build a bidirectional command-and-control channel over ICMP
+- Exfiltrate data over DNS by encoding it as subdomain labels in lookup requests
+- Understand detection signatures and the bandwidth limitations of covert channels
+
+---
+
 ## What is a Covert Channel?
 
 A covert channel is a communication path that uses a mechanism not designed for

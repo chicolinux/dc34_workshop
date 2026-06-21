@@ -1,5 +1,15 @@
 # Capstone — "Silent Pivot"
 
+## Goals for this Module
+
+- Chain all techniques from modules 1–6 into a realistic end-to-end kill chain
+- Perform stealthy host and port discovery without triggering Snort signatures
+- Exploit a vulnerability in a custom binary service
+- Establish a covert C2 channel and exfiltrate data over DNS
+- Score points against the capstone scoreboard within the time limit
+
+---
+
 ## Scenario
 
 You have just obtained shell access to an internal host at `192.168.56.1`.
