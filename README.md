@@ -149,3 +149,44 @@ Unauthorized use against real networks is illegal under the CFAA (18 U.S.C. § 1
 - RFC 793 (TCP), RFC 826 (ARP), RFC 792 (ICMP)
 - *Black Hat Python* — Justin Seitz (No Starch Press)
 - *The Art of Exploitation* — Jon Erickson (No Starch Press)
+
+---
+
+## Managing Multiple Terminals
+
+Several exercises (ARP MitM, session hijacking, covert channels) require three or more
+terminals open simultaneously. A terminal multiplexer lets you run them all inside a single
+SSH session: popular options are **tmux** (pre-installed on Kali), **screen**, and **zellij**.
+
+### tmux quick reference
+
+```bash
+# Start a new named session
+tmux new -s workshop
+
+# Inside tmux — create a new window (tab)
+Ctrl-b  c
+
+# Switch between windows
+Ctrl-b  n          # next window
+Ctrl-b  p          # previous window
+Ctrl-b  0          # jump to window 0 (use any number)
+
+# Split the current window into panes
+Ctrl-b  %          # vertical split (side by side)
+Ctrl-b  "          # horizontal split (top / bottom)
+
+# Move between panes
+Ctrl-b  arrow key
+
+# Detach from session (leave it running in background)
+Ctrl-b  d
+
+# Re-attach later
+tmux attach -t workshop
+```
+
+**Suggested layout for Module 4 session hijacking:**
+- Window 0 `attacker` — run `tcp_injector.py`
+- Window 1 `target` — run `nc 192.168.56.254 9999` (victim session)
+- Window 2 `gateway` — watch the listener output

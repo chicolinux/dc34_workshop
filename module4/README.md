@@ -78,20 +78,49 @@ victim's RSTs via ARP poisoning.
 
 ## SYN Flood and SYN Cookies
 
-Without SYN cookies:
-- Each SYN allocates a "SYN_RECV" entry in the connection table
-- Default Linux backlog: 128-1024 entries
-- Flood with spoofed SYNs → table fills → legitimate connections refused
+### The SYN flood problem
 
-With SYN cookies (default on modern Linux):
-- Server encodes connection state in the ISN (initial sequence number)
-- No table entry allocated until the client sends ACK
-- Flood impact is reduced but not eliminated: server still processes SYN-ACK generation
+Every incoming SYN causes the server to allocate a `SYN_RECV` entry in the backlog table and
+send a SYN-ACK. A flood with randomized spoofed source IPs means the SYN-ACKs go to
+nonexistent hosts — no ACK ever arrives — but the table entries stay until they time out:
 
-Monitor during flood:
+```
+Default Linux backlog:  128–1024 entries
+Flood with spoofed SYNs → table fills → legitimate connections refused
+```
+
+### What SYN cookies do
+
+Instead of allocating a table entry on SYN, the server encodes all connection state into the
+**ISN (Initial Sequence Number)** of the SYN-ACK:
+
+```
+ISN = hash(src_ip, src_port, dst_ip, dst_port, timestamp) + MSS encoding
+```
+
+```
+Client → Server:  SYN
+Server → Client:  SYN-ACK  (ISN carries encoded state — no table entry allocated)
+Client → Server:  ACK       ← server decodes state from ACK number, creates entry now
+```
+
+Spoofed SYNs never produce a real ACK, so no memory is ever allocated for them. The backlog
+stays empty regardless of flood volume.
+
+**The trade-off:** SYN cookies cannot carry TCP options (window scale, SACK) because there is
+no stored SYN to refer back to. Legitimate connections established during a flood see slightly
+reduced throughput.
+
+SYN cookies are on by default and activate automatically when the backlog fills:
 ```bash
-ss -s           # shows SYN_RECV count in real time
-cat /proc/net/tcp | grep " 06 " | wc -l   # count SYN_RECV entries
+sysctl net.ipv4.tcp_syncookies   # 1 = enabled (default)
+```
+
+### Monitor during a flood
+
+```bash
+ss -s                                         # shows SYN_RECV count in real time
+cat /proc/net/tcp | grep " 06 " | wc -l      # count SYN_RECV entries directly
 ```
 
 ## IP Fragmentation Attack History
