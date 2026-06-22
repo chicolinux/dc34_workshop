@@ -36,7 +36,7 @@ Vagrant.configure("2") do |config|
     gw.vm.provision "shell", inline: <<-'SHELL'
       set -e
       apk update || true   # mirror warning is non-fatal
-      apk add iptables netcat-openbsd
+      apk add iptables netcat-openbsd tcpdump
       # Enable IP forwarding so traffic actually routes through this VM when MitM'd.
       sysctl -w net.ipv4.ip_forward=1
       echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/99-ipforward.conf

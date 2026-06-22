@@ -152,7 +152,106 @@ and correct DHCP snooping configuration — rarely deployed consistently.
 
 | Exercise | File | Objective |
 |----------|------|-----------|
+| passive | `arp_scanner.py` | Passive MAC/IP discovery from observed ARP traffic |
 | 3-A | `arp_mitm.py` | Full MitM with traffic interception and cache restore |
 | 3-B | `icmp_redirect.py` | Route hijack via ICMP Redirect |
 | 3-X (extra) | manual | Passive traceroute via TTL-limited probes to map internal topology |
-| passive | `arp_scanner.py` | Passive MAC/IP discovery from observed ARP traffic |
+
+### Passive Walkthrough — `arp_scanner.py` (Passive ARP Observer)
+
+**Terminals needed: 2** — T1 attacker (passive sniffer), T2 target (generates ARP traffic)
+
+**Step 1 — Start the passive observer on the attacker (T1):**
+```bash
+sudo python3 /vagrant/module3/arp_scanner.py
+```
+
+**Step 2 — Generate ARP traffic from the target (T2):**
+```bash
+ping 192.168.56.254    # each ping triggers an ARP request to the gateway
+arp -n                 # forces ARP lookups
+```
+
+**Step 3 — Press Ctrl-C on T1 after 20–30 seconds to see the summary table.**
+
+**What you will see:** IP→MAC associations appearing in real time as ARP packets are observed.
+If you also run `arp_mitm.py` in a third terminal, T1 will print `[!] CONFLICT` warnings
+when it sees the gateway's IP claimed by two different MACs — the attacker's and the real one.
+
+---
+
+### Exercise 3-A Walkthrough — ARP Cache Poisoning MitM
+
+**Terminals needed: 3** — T1 attacker (MitM script), T2 target (generates traffic), T3 target (watches ARP cache)
+
+| Terminal | VM | Purpose |
+|----------|----|---------|
+| T1 | `vagrant ssh attacker` | run `arp_mitm.py` |
+| T2 | `vagrant ssh target` | generate HTTP/ICMP traffic |
+| T3 | `vagrant ssh target` | watch ARP cache change in real time |
+
+**Step 1 — Start watching the ARP cache on the target before poisoning (T3):**
+```bash
+watch -n1 ip neigh
+```
+
+**Step 2 — Start the MitM (T1):**
+```bash
+sudo python3 /vagrant/module3/arp_mitm.py --victim 192.168.56.2 --gateway 192.168.56.254
+```
+Watch T3: the gateway entry (`192.168.56.254`) will change from the gateway's real MAC to the
+attacker's MAC within 2 seconds.
+
+**Step 3 — Generate cleartext traffic from the target (T2):**
+```bash
+curl http://192.168.56.254      # HTTP Host header captured by attacker
+ping 192.168.56.254             # ICMP captured by attacker
+```
+
+**Step 4 — Observe intercepted traffic on T1.** The script prints each `[HTTP]` Host header
+and `[DNS]` query it sees flowing through the attacker.
+
+**Step 5 — Press Ctrl-C on T1 to stop.** Watch T3: the gateway MAC restores to the real value.
+
+**What you will see:** T1 logs intercepted HTTP and DNS events. T3 shows the poisoned then
+restored ARP cache entry for `192.168.56.254`.
+
+---
+
+### Exercise 3-B Walkthrough — ICMP Redirect Route Hijack
+
+**Terminals needed: 2** — T1 attacker (sends the redirect), T2 target (verifies the route change)
+
+**Step 1 — Enable ICMP redirect acceptance on the target (T2):**
+```bash
+sudo sysctl -w net.ipv4.conf.all.accept_redirects=1
+```
+
+**Step 2 — Record the current routing table on the target for comparison (T2):**
+```bash
+ip route show
+```
+
+**Step 3 — Send the spoofed redirect from the attacker (T1):**
+```bash
+sudo python3 /vagrant/module3/icmp_redirect.py \
+    --victim 192.168.56.2 \
+    --gateway 192.168.56.254 \
+    --redirect-host 8.8.8.8 \
+    --attacker 192.168.56.1
+```
+
+**Step 4 — Check whether the route changed (T2):**
+```bash
+ip route show    # look for: 8.8.8.8 via 192.168.56.1
+```
+
+**Step 5 — Clean up the target (T2):**
+```bash
+sudo sysctl -w net.ipv4.conf.all.accept_redirects=0
+sudo ip route flush cache
+```
+
+**What you will see:** if the kernel accepted the redirect, `ip route show` on T2 will show
+a new host route `8.8.8.8 via 192.168.56.1`. On a hardened Ubuntu 24.04 kernel this is
+typically ignored by default — which is itself a useful observation about modern Linux hardening.

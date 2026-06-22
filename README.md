@@ -144,11 +144,81 @@ Unauthorized use against real networks is illegal under the CFAA (18 U.S.C. § 1
 
 ## Resources
 
+- [Protocol Headers Reference](protocol_headers.md) — Mermaid diagrams for every protocol covered in the workshop (Ethernet, ARP, IPv4, ICMP, TCP, UDP, DNS, DC34)
 - [Scapy documentation](https://scapy.readthedocs.io/)
 - [Scapy GitHub](https://github.com/secdev/scapy)
 - RFC 793 (TCP), RFC 826 (ARP), RFC 792 (ICMP)
 - *Black Hat Python* — Justin Seitz (No Starch Press)
 - *The Art of Exploitation* — Jon Erickson (No Starch Press)
+
+---
+
+## Working with the ARP Table
+
+The `ip neigh` command (iproute2) is the modern tool for inspecting and manipulating the ARP
+cache. You will use it throughout modules 3 and 4 — to baseline the cache before an attack,
+watch it change in real time during poisoning, and clean up afterwards.
+
+### Displaying entries
+
+```bash
+ip neigh                        # full table, all interfaces
+ip neigh show dev eth1          # filter to the lab interface only
+ip neigh show nud reachable     # only recently confirmed entries
+ip neigh show nud stale         # entries not yet reverified (common mid-attack)
+```
+
+Example output:
+```
+192.168.56.2   dev eth1 lladdr 08:00:27:79:be:b4 REACHABLE
+192.168.56.254 dev eth1 lladdr 08:00:27:26:ea:73 STALE
+```
+
+**NUD states** (Neighbour Unreachability Detection) you will see during exercises:
+`REACHABLE` → confirmed recently · `STALE` → not confirmed but still used · `DELAY` → probing
+soon · `PROBE` → actively sending probes · `FAILED` → host unreachable · `PERMANENT` → static,
+never expires
+
+### Watching in real time
+
+```bash
+watch -n1 ip neigh              # refresh every second — run this on the target during 3-A
+```
+
+This is the most useful command during exercise 3-A: you can see the gateway's MAC flip to the
+attacker's MAC within seconds of starting `arp_mitm.py`, and flip back when the script exits.
+
+### Deleting and flushing entries
+
+```bash
+# Delete a single entry (force fresh ARP resolution for that host)
+sudo ip neigh del 192.168.56.254 dev eth1
+
+# Flush all dynamic entries on the lab interface (use after any attack)
+sudo ip neigh flush dev eth1
+
+# Flush the entire table on all interfaces
+sudo ip neigh flush all
+```
+
+### Adding and pinning static entries
+
+```bash
+# Add a permanent entry — immune to ARP poisoning
+sudo ip neigh add 192.168.56.254 lladdr 08:00:27:26:ea:73 dev eth1 nud permanent
+
+# Change an existing entry in place
+sudo ip neigh change 192.168.56.254 lladdr 08:00:27:26:ea:73 dev eth1
+
+# Remove a static entry you added
+sudo ip neigh del 192.168.56.254 dev eth1
+```
+
+Pinning the gateway's real MAC as `permanent` is a simple defence against the module 3
+ARP poisoning attack — `arp_mitm.py` cannot overwrite a permanent entry.
+
+> **Legacy alternative:** `arp -n` (display) and `arp -d <ip>` (delete) still work but are
+> deprecated in favour of `ip neigh`. Prefer `ip neigh` in all workshop commands.
 
 ---
 

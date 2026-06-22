@@ -165,9 +165,90 @@ log produced new entries:
 
 | Exercise | File | Objective |
 |----------|------|-----------|
+| standalone | `host_discovery.py` | ARP/ICMP/TCP sweep to find live hosts |
 | 2-A | `syn_scanner.py` | Build a SYN scanner with JSON output |
 | 2-B | `os_fingerprint.py` | Extract TTL, window, TCP options for OS guess |
 | 2-X (extra) | manual | Evade Snort with fragmentation + TTL jitter |
+
+### Standalone Walkthrough — `host_discovery.py` (Network Sweep)
+
+**Terminals needed: 1** — T1 attacker only
+
+**Step 1 — ARP sweep (fastest, L2 only):**
+```bash
+sudo python3 /vagrant/module2/host_discovery.py 192.168.56.0/24 --method arp
+```
+
+**Step 2 — Try all methods and compare detection rates:**
+```bash
+sudo python3 /vagrant/module2/host_discovery.py 192.168.56.0/24 --method all
+```
+
+**What you will see:** live hosts at `.1` (attacker), `.2` (target), `.254` (gateway), each annotated
+with the discovery method and MAC address. ARP is the most reliable on a flat LAN; ICMP and TCP
+methods also work but may be filtered by host firewalls.
+
+---
+
+### Exercise 2-A Walkthrough — SYN Port Scanner
+
+**Terminals needed: 2** — T1 attacker (scanner), T2 target (verify which ports are actually open)
+
+**Step 1 — Confirm which services are listening on the target before scanning (T2):**
+```bash
+ss -tlnp
+```
+
+**Step 2 — Run the SYN scanner (T1):**
+```bash
+sudo python3 /vagrant/module2/syn_scanner.py 192.168.56.2 --ports 1-1024
+```
+
+**Step 3 — Compare the scanner's JSON output against the `ss` output from T2 (T1):**
+```bash
+cat results.json
+```
+
+**What you will see:** port 22 (SSH) and port 9000 (vulnerable service) as `open`; most others
+as `closed` (RST received) or `filtered` (timeout). JSON file written with timestamp and elapsed time.
+
+---
+
+### Exercise 2-B Walkthrough — OS Fingerprinting
+
+**Terminals needed: 1** — T1 attacker only (target just needs to be running)
+
+**Step 1 — Fingerprint the target on SSH (always open):**
+```bash
+sudo python3 /vagrant/module2/os_fingerprint.py 192.168.56.2 --port 22
+```
+
+**Step 2 — Try a different port to see if the fingerprint changes:**
+```bash
+sudo python3 /vagrant/module2/os_fingerprint.py 192.168.56.2 --port 9000
+```
+
+**What you will see:** ICMP TTL (64 → starting TTL bucket), TCP window size, TCP option order
+(`[MSS, SAckOK, Timestamp, NOP, WScale]`), and a scored OS guess — `Linux 5.x` for the Ubuntu target.
+
+---
+
+### Exercise 2-X Walkthrough — Evasion Verification with Snort
+
+**Terminals needed: 2** — T1 attacker (scanner), T2 target (watch Snort alert log)
+
+See the **"Verifying Evasion with Snort"** section above for the full step-by-step. In brief:
+
+```bash
+# T2 (target): watch alerts in real time
+sudo truncate -s 0 /var/log/snort/alert && sudo tail -f /var/log/snort/alert
+
+# T1 (attacker): baseline — plain SYN scan (should be caught)
+sudo python3 /vagrant/module2/syn_scanner.py 192.168.56.2 --ports 1-500
+
+# T1 (attacker): apply fragmentation evasion from the Evasion Techniques section
+# and observe whether the [122:1:1] alert disappears from T2
+```
 
 ## Comparison to Nmap
 

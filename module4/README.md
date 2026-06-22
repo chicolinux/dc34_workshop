@@ -191,3 +191,94 @@ SSH and HTTPS sessions cannot be hijacked this way. The injected bytes would fai
 verification on the encrypted channel and the session would terminate with an error — the
 payload is never interpreted as input. Session hijacking only works against cleartext
 protocols (Telnet, plain HTTP, unencrypted netcat, FTP).
+
+---
+
+### Exercise 4-B Walkthrough — SYN Flood
+
+**Terminals needed: 2** — T1 attacker (flood), T2 target (watch the connection table)
+
+| Terminal | VM | Purpose |
+|----------|----|---------|
+| T1 | `vagrant ssh attacker` | run the flood |
+| T2 | `vagrant ssh target` | monitor `SYN_RECV` entries in real time |
+
+**Step 1 — Start monitoring the connection table on the target (T2):**
+```bash
+watch -n1 'ss -s'
+```
+
+**Step 2 — Start the SYN flood from the attacker (T1):**
+```bash
+sudo python3 /vagrant/module4/syn_flood.py --target 192.168.56.2 --port 9000 --duration 15
+```
+
+**Step 3 — Observe the effect on T2:** `SYN_RECV` entries accumulate during the flood, then
+drop back to zero after the 15-second duration ends.
+
+**What you will see:** T1 prints pre-flight responsiveness check, live packets-per-second rate,
+and a post-flight check. T2's `ss -s` shows `SYN_RECV` entries building up. Because Ubuntu
+enables SYN cookies by default, the count stays bounded and the service remains reachable —
+the script's post-flight check will confirm the target is still responsive.
+
+---
+
+### Standalone Walkthrough — `rst_injector.py` (Connection Killer)
+
+**Terminals needed: 3** — T1 attacker (ARP MitM to get on-path), T2 attacker (RST injector), T3 target (victim's connection)
+
+| Terminal | VM | Purpose |
+|----------|----|---------|
+| T1 | `vagrant ssh attacker` | ARP MitM — puts attacker on-path so it sees target traffic |
+| T2 | `vagrant ssh attacker` | run `rst_injector.py` |
+| T3 | `vagrant ssh target` | hold the TCP session that will be killed |
+
+**Step 1 — Open a persistent connection from the target to the gateway (T3):**
+```bash
+nc 192.168.56.254 9999
+# type a few messages so there is live traffic on the wire
+```
+
+**Step 2 — Start ARP poisoning so the attacker sees the traffic (T1):**
+```bash
+sudo python3 /vagrant/module3/arp_mitm.py --victim 192.168.56.2 --gateway 192.168.56.254
+```
+
+**Step 3 — Run the RST injector in a second attacker terminal (T2):**
+```bash
+sudo python3 /vagrant/module4/rst_injector.py --target 192.168.56.2 --port 9999
+```
+
+**Step 4 — Type anything in T3's nc session.** The injector detects the packet and immediately
+kills the connection.
+
+**What you will see:** T2 prints the detected session and `[+] RST injected — session killed`.
+T3's nc session closes with "broken pipe" or simply exits — the victim loses the connection
+with no graceful teardown.
+
+---
+
+### Demo Walkthrough — `ip_options.py` (IP Options and Fragmentation)
+
+**Terminals needed: 2** — T1 attacker (runs the demos), T2 target (optional — observe with tcpdump)
+
+**Step 1 — Optional: start tcpdump on the target to observe incoming packets (T2):**
+```bash
+sudo tcpdump -i eth1 -n 'src host 192.168.56.1' -v
+```
+
+**Step 2 — Run all demos in sequence (T1):**
+```bash
+sudo python3 /vagrant/module4/ip_options.py --demo all --target 192.168.56.2
+```
+
+**Step 3 — Run just the fragmentation demo to focus on IDS evasion (T1):**
+```bash
+sudo python3 /vagrant/module4/ip_options.py --demo frag --target 192.168.56.2
+```
+
+**What you will see:** T1 prints the full Scapy packet structure for each IP option (LSRR,
+Record Route, Timestamp) and the fragment list for the frag demo. T2's tcpdump shows individual
+IP fragments arriving with the `MF` (More Fragments) flag set, then the final fragment with
+`MF=0`. The kernel reassembles them and processes the packet normally — while a stateless IDS
+inspecting only the first fragment would miss the TCP flags.

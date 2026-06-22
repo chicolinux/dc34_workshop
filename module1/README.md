@@ -133,17 +133,71 @@ s.stop(); s.results
 | 1-A | `fundamentals.py` | Packet anatomy lab — complete the TODOs in `exercise_1a()` |
 | 1-B | `pcap_dissector.py` | Extract unique source IPs, reassemble an HTTP body by TCP sequence, write a TCP-only PCAP |
 
-### Running
+### Exercise 1-A Walkthrough — Packet Anatomy Lab
 
+**Terminals needed: 2** — T1 attacker (runs the script), T2 target (generates live traffic for the sniffing section)
+
+**Step 1 — Run the reference sections to see expected output before editing (T1):**
 ```bash
-# Walk through every fundamentals section (or pick one with --section)
-sudo python3 module1/fundamentals.py
-sudo python3 module1/fundamentals.py --section sniffing
-
-# Dissect a capture. The fundamentals PCAP demo writes /tmp/demo.pcap you can point at,
-# or supply your own HTTP capture.
-sudo python3 module1/pcap_dissector.py <capture.pcap> [output.pcap]
+sudo python3 /vagrant/module1/fundamentals.py --section construction
+sudo python3 /vagrant/module1/fundamentals.py --section send_receive
 ```
 
-`fundamentals.py` targets `192.168.56.2` and uses `conf.iface` by default — edit `TARGET`/`IFACE` at the
-top of the file if your lab differs.
+**Step 2 — Generate ICMP traffic for the sniffing section (T2):**
+```bash
+ping 192.168.56.1
+```
+
+**Step 3 — Run the sniffing section while T2 is pinging (T1):**
+```bash
+sudo python3 /vagrant/module1/fundamentals.py --section sniffing
+```
+
+**Step 4 — Open `fundamentals.py` and fill in the five TODOs in `exercise_1a()` (T1):**
+```bash
+nano /vagrant/module1/fundamentals.py   # or vim, or any editor
+sudo python3 /vagrant/module1/fundamentals.py --section 1a
+```
+
+**Step 5 — Run the full script to verify all sections work (T1):**
+```bash
+sudo python3 /vagrant/module1/fundamentals.py
+```
+
+**What you will see:** packet `.show()` and `.show2()` output, `hexdump()` bytes, `sr1()` reply with TTL,
+sniffed packet summaries, PCAP written to `/tmp/demo.pcap`.
+
+---
+
+### Exercise 1-B Walkthrough — PCAP Analysis
+
+**Terminals needed: 1** — T1 attacker only (pure file processing, no live traffic required)
+
+**Step 1 — Generate a PCAP to analyze using the fundamentals pcap section (T1):**
+```bash
+sudo python3 /vagrant/module1/fundamentals.py --section pcap
+# writes /tmp/demo.pcap
+```
+
+**Step 2 — Run the dissector against it (T1):**
+```bash
+sudo python3 /vagrant/module1/pcap_dissector.py /tmp/demo.pcap
+```
+
+**Optional — Capture real HTTP traffic for a richer dataset (2 terminals):**
+```bash
+# T1 (attacker): capture HTTP traffic while T2 generates it
+sudo python3 -c "
+from scapy.all import *
+pkts = sniff(iface='eth1', filter='tcp port 80', count=30, timeout=15)
+wrpcap('/tmp/http_cap.pcap', pkts)
+print(f'Saved {len(pkts)} packets')
+"
+# T2 (target): curl http://192.168.56.1
+
+# Then dissect the capture:
+sudo python3 /vagrant/module1/pcap_dissector.py /tmp/http_cap.pcap http_only.pcap
+```
+
+**What you will see:** list of unique source IPs, reassembled HTTP payload (headers + body in
+sequence-number order), and a count of TCP-only packets written to the output PCAP.
