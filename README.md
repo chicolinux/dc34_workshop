@@ -1,6 +1,14 @@
 # DEFCON 34 — Offensive Packet Wizardry with Scapy
 ### From Basics to Red Team Toolkit
 
+> **⚠️ MANDATORY — arrive with your lab already built.** The three-VM lab (Kali attacker + Ubuntu
+> target + gateway) is **not provided at the venue**. Build it yourself, at home, before the
+> workshop — see [`setup/README.md`](setup/README.md) for the full Vagrant setup guide. No
+> pre-built lab, no exercises.
+
+> **Note:** This repository is a work in progress and is not officially released until
+> **August 1st**. Content may change before then.
+
 **Duration:** 4 hours
 **Level:** Intermediate (Python + basic TCP/IP required)
 **Instructor:** Miguel Guirao
